@@ -7,7 +7,7 @@ import Image from 'next/image'
 import { ArrowLeft, Package, MapPin, CreditCard, ShoppingBag, MessageCircle } from 'lucide-react'
 import { ordersApi } from '@/lib/api'
 import { formatPrice, formatDate } from '@/lib/utils'
-import { buildWaMessage } from '@/app/checkout/page'
+import { buildWaMessage } from '@/lib/buildWaMessage'
 import type { Order } from '@/lib/types'
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5561982395045'
