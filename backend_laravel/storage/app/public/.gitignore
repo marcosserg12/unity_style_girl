@@ -1,3 +1,2 @@
-# Temporariamente permitindo imagens para commit inicial
-# Após o push, este arquivo será restaurado para ignorar uploads futuros
-.gitignore
+*
+!.gitignore
