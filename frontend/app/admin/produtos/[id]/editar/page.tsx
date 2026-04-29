@@ -42,8 +42,9 @@ export default function EditProductPage() {
   const [variants, setVariants] = useState<any[]>([])
 
   // Existing server images
-  const [existingImages,  setExistingImages]  = useState<ExistingImage[]>([])
-  const [deletedImageIds, setDeletedImageIds] = useState<number[]>([])
+  const [existingImages,    setExistingImages]    = useState<ExistingImage[]>([])
+  const [deletedImageIds,   setDeletedImageIds]   = useState<number[]>([])
+  const [primaryExistingId, setPrimaryExistingId] = useState<number | null>(null)
 
   // New images to upload, grouped by color
   const [newImageGroups, setNewImageGroups] = useState<NewImageGroup[]>([])
@@ -74,12 +75,14 @@ export default function EditProductPage() {
           is_active:         !!p.is_active,
         })
 
-        setExistingImages((p.images ?? []).map((img: any) => ({
+        const mappedImages = (p.images ?? []).map((img: any) => ({
           id:         img.id,
           url:        img.url,
           color:      img.color ?? null,
           is_primary: img.is_primary,
-        })))
+        }))
+        setExistingImages(mappedImages)
+        setPrimaryExistingId(mappedImages.find((img: ExistingImage) => img.is_primary)?.id ?? mappedImages[0]?.id ?? null)
 
         setVariants((p.variants ?? []).map((v: any) => {
           const dbColor = colorRes.data.find((c: any) => c.name === v.color)
