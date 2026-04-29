@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name:         'unitygirl-frontend',
-      cwd:          '/var/www/unitygirlstyle/frontend',
+      cwd:          '/var/www/unity_style_girl/frontend',
       script:       'node_modules/.bin/next',
       args:         'start',
       instances:    1,
