@@ -34,7 +34,7 @@ const MOBILE_LINKS = [
   { label: 'Contato',                href: '/contato'                      },
 ]
 
-const MARQUEE_ITEMS = [
+const MARQUEE_DEFAULT = [
   '✦ NOVA COLEÇÃO VERÃO 2025',
   '✦ FRETE PARA BRASÍLIA E DF',
   '✦ GANHE UMA BOLSA EXCLUSIVA EM COMPRAS ACIMA DE R$299,99',
@@ -115,13 +115,14 @@ function MegaMenu() {
 }
 
 export default function Header() {
-  const [scrolled,    setScrolled]    = useState(false)
-  const [mobileOpen,  setMobileOpen]  = useState(false)
-  const [cartOpen,    setCartOpen]    = useState(false)
-  const [searchOpen,  setSearchOpen]  = useState(false)
-  const [userRole,    setUserRole]    = useState<string | null>(null)
-  const [catsOpen,    setCatsOpen]    = useState(false)
-  const [mounted,     setMounted]     = useState(false)
+  const [scrolled,      setScrolled]      = useState(false)
+  const [mobileOpen,    setMobileOpen]    = useState(false)
+  const [cartOpen,      setCartOpen]      = useState(false)
+  const [searchOpen,    setSearchOpen]    = useState(false)
+  const [userRole,      setUserRole]      = useState<string | null>(null)
+  const [catsOpen,      setCatsOpen]      = useState(false)
+  const [mounted,       setMounted]       = useState(false)
+  const [marqueeItems,  setMarqueeItems]  = useState<string[]>(MARQUEE_DEFAULT)
   const itemCount   = useCartStore(s => s.itemCount)
   const favCount    = useFavoritesStore(s => s.count)
 
@@ -156,6 +157,10 @@ export default function Header() {
 
     setMounted(true)
     checkAuth()
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings`)
+      .then(r => r.json())
+      .then(d => { if (d.marquee_items?.length) setMarqueeItems(d.marquee_items) })
+      .catch(() => {})
     window.addEventListener('storage', checkAuth)
 
     return () => {
@@ -170,7 +175,7 @@ export default function Header() {
       <div className="bg-wine-950 text-cream-100 py-2 overflow-hidden relative">
         <div className="flex animate-marquee whitespace-nowrap">
           {/* Duplicate para loop infinito */}
-          {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
+          {[...marqueeItems, ...marqueeItems].map((item, i) => (
             <span
               key={i}
               className="inline-flex items-center gap-3 mx-8 font-sans text-[10px] md:text-[11px] tracking-[0.22em] uppercase font-semibold text-cream-100/90"

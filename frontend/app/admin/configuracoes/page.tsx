@@ -1046,11 +1046,108 @@ function CoresTab() {
   )
 }
 
+// ──── Aba: Marquee ────────────────────────────────────────────────────────────
+
+function MarqueeTab() {
+  const [items,   setItems]   = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving,  setSaving]  = useState(false)
+  const [newItem, setNewItem] = useState('')
+
+  useEffect(() => {
+    api.get('/admin/settings')
+      .then(({ data }) => setItems(data.marquee_items ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function save() {
+    setSaving(true)
+    try {
+      await api.post('/admin/settings', { marquee_items: items })
+      toast.success('Frases salvas!')
+    } catch { toast.error('Erro ao salvar.') }
+    finally { setSaving(false) }
+  }
+
+  function addItem() {
+    const trimmed = newItem.trim()
+    if (!trimmed) return
+    setItems(prev => [...prev, trimmed])
+    setNewItem('')
+  }
+
+  function removeItem(i: number) {
+    setItems(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  return (
+    <div className="space-y-6 max-w-xl">
+      <div>
+        <h3 className="font-serif text-lg text-gray-800 font-medium">Faixa de Avisos (Marquee)</h3>
+        <p className="text-xs text-gray-400 font-sans mt-0.5">Frases que rolam no topo da página. Use ✦ no início para manter o padrão.</p>
+      </div>
+
+      {loading ? <p className="text-gray-400 font-sans text-sm py-8 text-center">Carregando...</p> : (
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <input
+              value={newItem}
+              onChange={e => setNewItem(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addItem()}
+              placeholder="✦ NOVA FRASE AQUI..."
+              className="flex-1 border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-wine-900 transition-colors"
+            />
+            <button
+              onClick={addItem}
+              disabled={!newItem.trim()}
+              className="flex items-center gap-2 px-4 py-2.5 bg-wine-900 text-white font-sans font-bold text-xs tracking-wider uppercase hover:bg-wine-800 disabled:opacity-50 transition-colors"
+            >
+              <Plus size={14} /> Add
+            </button>
+          </div>
+
+          {items.length === 0 ? (
+            <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl">
+              <p className="text-gray-400 font-sans text-sm">Nenhuma frase cadastrada.</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {items.map((item, i) => (
+                <div key={i} className="flex items-center gap-3 bg-white border border-gray-100 rounded-xl px-4 py-3">
+                  <span className="flex-1 text-sm text-gray-700 font-sans">{item}</span>
+                  <button
+                    onClick={() => removeItem(i)}
+                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-gray-100 flex justify-end">
+            <button
+              onClick={save}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-2.5 bg-wine-900 text-white font-sans font-bold text-xs tracking-wider uppercase hover:bg-wine-800 disabled:opacity-50 transition-colors"
+            >
+              {saving ? 'Salvando...' : <><Check size={14} /> Salvar</>}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ──── Abas ────────────────────────────────────────────────────────────────────
 
 const TABS = [
   { id: 'slideshow',  label: 'Slideshow',          icon: LayoutTemplate },
   { id: 'menu',       label: 'Menu de Categorias', icon: ImageIcon      },
+  { id: 'marquee',    label: 'Faixa de Avisos',    icon: Tag            },
   { id: 'categorias', label: 'Categorias',          icon: Tag            },
   { id: 'tamanhos',   label: 'Tamanhos',            icon: Ruler          },
   { id: 'cores',      label: 'Cores',               icon: Palette        },
@@ -1087,6 +1184,7 @@ export default function ConfiguracoesPage() {
       <div>
         {tab === 'slideshow'  && <SlideshowTab />}
         {tab === 'menu'       && <MenuTab />}
+        {tab === 'marquee'    && <MarqueeTab />}
         {tab === 'categorias' && <CategoriasTab />}
         {tab === 'tamanhos'   && <TamanhosTab />}
         {tab === 'cores'      && <CoresTab />}
