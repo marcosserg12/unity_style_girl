@@ -19,7 +19,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'unitygirl.com.br',
+        hostname: 'api.unitygirlstyle.com.br',
         pathname: '/storage/**',
       },
       {
