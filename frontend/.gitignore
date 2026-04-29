@@ -1,0 +1,14 @@
+# Next.js
+.next/
+out/
+tsconfig.tsbuildinfo
+
+# Env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+
+# Build cache
+.turbo/

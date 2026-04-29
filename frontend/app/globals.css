@@ -1,0 +1,207 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Variáveis CSS da Marca ─────────────────────────────────────────────── */
+:root {
+  --wine-900:  #7b0d1e;
+  --wine-800:  #8b1a2d;
+  --wine-950:  #5c0b17;
+  --cream-100: #f5f0e8;
+  --cream-200: #ede8df;
+  --gold-400:  #d4af37;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-cream-200 text-gray-900 font-sans;
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+
+  ::-webkit-scrollbar        { width: 5px; }
+  ::-webkit-scrollbar-track  { @apply bg-cream-200; }
+  ::-webkit-scrollbar-thumb  { @apply bg-wine-900 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-wine-800; }
+
+  ::selection {
+    @apply bg-wine-900 text-cream-100;
+  }
+}
+
+/* ─── Componentes ────────────────────────────────────────────────────────── */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-none
+           bg-wine-900 text-cream-100
+           font-sans font-medium tracking-widest uppercase text-sm
+           transition-all duration-300
+           hover:bg-wine-800 hover:shadow-wine
+           active:scale-[0.97]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-none
+           border border-wine-900 text-wine-900
+           font-sans font-medium tracking-widest uppercase text-sm
+           transition-all duration-300
+           hover:bg-wine-900 hover:text-cream-100
+           active:scale-[0.97];
+  }
+
+  .product-card {
+    @apply bg-white shadow-card hover:shadow-card-hover
+           transition-all duration-300 cursor-pointer overflow-hidden;
+  }
+
+  .badge {
+    @apply inline-block px-2.5 py-1
+           text-xs font-sans font-semibold tracking-wider uppercase;
+  }
+
+  .badge-sale { @apply bg-wine-900 text-cream-100; }
+  .badge-new  { @apply bg-gold-400 text-gray-900; }
+  .badge-low  { @apply bg-amber-500 text-white; }
+
+  .input-elegant {
+    @apply w-full px-4 py-3
+           bg-white border border-gray-200
+           font-sans text-sm text-gray-800
+           placeholder:text-gray-400
+           focus:outline-none focus:border-wine-900 focus:ring-1 focus:ring-wine-900
+           transition-colors duration-200 rounded-none;
+  }
+
+  .section-title {
+    @apply font-serif text-3xl md:text-4xl text-gray-900 font-light text-center;
+  }
+
+  .section-divider {
+    @apply flex items-center gap-4 justify-center mt-3 mb-10;
+  }
+
+  .section-divider::before,
+  .section-divider::after {
+    content: '';
+    @apply flex-1 max-w-16 h-px bg-wine-900 opacity-30;
+  }
+}
+
+/* ─── Utilities ──────────────────────────────────────────────────────────── */
+@layer utilities {
+  .text-balance    { text-wrap: balance; }
+  .hide-scrollbar  { -ms-overflow-style: none; scrollbar-width: none; }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+
+  .underline-wine { @apply relative; }
+  .underline-wine::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-px bg-wine-900;
+  }
+
+  /* Scroll reveal — toggled via Intersection Observer */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+  .reveal.visible       { opacity: 1; transform: translateY(0); }
+
+  .reveal-left {
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+  .reveal-left.visible  { opacity: 1; transform: translateX(0); }
+
+  .reveal-right {
+    opacity: 0;
+    transform: translateX(30px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+  .reveal-right.visible { opacity: 1; transform: translateX(0); }
+
+  .reveal-zoom {
+    opacity: 0;
+    transform: scale(0.92);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+  .reveal-zoom.visible  { opacity: 1; transform: scale(1); }
+}
+
+/* ─── Keyframes ──────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33%       { transform: translateY(-14px) rotate(1.5deg); }
+  66%       { transform: translateY(-6px) rotate(-1deg); }
+}
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50%       { opacity: 1; transform: scale(1) rotate(180deg); }
+}
+@keyframes shimmer {
+  from { background-position: -600px 0; }
+  to   { background-position: 600px 0; }
+}
+@keyframes pulseWine {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(123,13,30,0.35); }
+  50%       { box-shadow: 0 0 0 12px rgba(123,13,30,0); }
+}
+@keyframes bounceSoft {
+  0%, 100% { transform: translateY(0); }
+  40%       { transform: translateY(-8px); }
+  60%       { transform: translateY(-4px); }
+}
+@keyframes rotateIn {
+  from { opacity: 0; transform: rotate(-6deg) scale(0.9); }
+  to   { opacity: 1; transform: rotate(0deg) scale(1); }
+}
+@keyframes scaleX {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ─── Animation classes ──────────────────────────────────────────────────── */
+.animate-marquee     { animation: marquee 30s linear infinite; }
+.animate-float       { animation: float 7s ease-in-out infinite; }
+.animate-sparkle     { animation: sparkle 2.8s ease-in-out infinite; }
+.animate-pulse-wine  { animation: pulseWine 2.2s ease-in-out infinite; }
+.animate-bounce-soft { animation: bounceSoft 2.4s ease-in-out infinite; }
+.animate-fade-in     { animation: fadeIn 0.5s ease-out both; }
+.animate-slide-up    { animation: slideUp 0.6s ease-out both; }
+.animate-rotate-in   { animation: rotateIn 0.6s ease-out both; }
+
+.shimmer {
+  background: linear-gradient(90deg, #f5f0e8 25%, #ede8df 50%, #f5f0e8 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.6s infinite linear;
+}

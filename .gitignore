@@ -1,0 +1,43 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# Logs
+*.log
+
+# Env files — nunca commitar segredos
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+
+# Next.js build
+frontend/.next/
+frontend/out/
+frontend/tsconfig.tsbuildinfo
+
+# Laravel
+backend_laravel/vendor/
+backend_laravel/storage/*.key
+backend_laravel/storage/pail/
+backend_laravel/public/storage
+backend_laravel/public/hot
+backend_laravel/public/build/
+backend_laravel/bootstrap/cache/*.php
+backend_laravel/.phpunit.result.cache
+backend_laravel/.phpunit.cache/
+
+# Fotos diversas soltas na raiz
+*.jpg
+*.png
+*.svg
+foto_novo/
+fotos/
