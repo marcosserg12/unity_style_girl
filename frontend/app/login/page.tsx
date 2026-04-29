@@ -71,7 +71,7 @@ export default function LoginPage() {
                 transition={{ delay: 0.3 }}
                 className="font-script text-wine-900 text-5xl block mb-2"
               >
-                Unity Girl
+                Unity Girl Style
               </motion.span>
               <h1 className="font-serif text-xl text-gray-400 tracking-widest uppercase text-[10px] md:text-xs">
                 Acesse sua conta

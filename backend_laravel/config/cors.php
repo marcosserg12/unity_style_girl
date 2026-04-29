@@ -33,6 +33,8 @@ return [
         'http://127.0.0.1:3004',
         'http://127.0.0.1:3005',
         'https://unitygirl.com.br',
+        'https://unitygirlstyle.com.br',
+        'https://www.unitygirlstyle.com.br',
     ],
 
     'allowed_origins_patterns' => [],
