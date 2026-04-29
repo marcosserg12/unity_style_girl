@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Lock, CheckCircle } from 'lucide-react'
-import api from '@/lib/api'
+import { api } from '@/lib/api'
 
 export default function AlterarSenhaPage() {
   const [form, setForm]     = useState({ current_password: '', password: '', password_confirmation: '' })

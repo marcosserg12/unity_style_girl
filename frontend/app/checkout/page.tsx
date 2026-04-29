@@ -37,7 +37,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 type PaymentMethod = 'pix' | 'credit_card' | ''
 
-export function buildWaMessage(
+function buildWaMessage(
   items: { product_name: string; size: string | null; color: string | null; quantity: number; unit_price: number }[],
   total: number,
   name: string,
