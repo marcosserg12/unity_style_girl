@@ -98,7 +98,10 @@ export default function SearchOverlay({ open, onClose }: Props) {
         {results.length > 0 && (
           <div className="max-w-3xl mx-auto px-5 py-4 grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
             {results.map(product => {
-              const image        = product.primary_image?.url ?? 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop'
+              const image        = product.images?.find(img => img.is_primary)?.url
+                                ?? product.images?.[0]?.url
+                                ?? product.primary_image?.url
+                                ?? 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop'
               const currentPrice = product.sale_price ?? product.price
               return (
                 <Link
