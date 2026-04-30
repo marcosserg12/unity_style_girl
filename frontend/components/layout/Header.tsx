@@ -230,7 +230,7 @@ export default function Header() {
         </div>
 
         <div className="max-w-7xl mx-auto px-5 lg:px-8">
-          <div className="grid grid-cols-3 items-center h-20">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center h-20">
 
             {/* Left: hamburger mobile */}
             <div className="flex justify-start">
