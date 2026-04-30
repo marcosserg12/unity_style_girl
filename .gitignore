@@ -15,6 +15,11 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+.env.production
+frontend/.env.production
+
+# Upload de imagens/arquivos do Laravel (ficam só no servidor)
+backend_laravel/storage/app/public/
 
 # Node
 node_modules/
