@@ -48,6 +48,12 @@ export default function ProductCard({ product, className }: Props) {
   const [selectedColor, setSelectedColor] = useState<string | null>(firstColor)
   const [hovered, setHovered] = useState(false)
 
+  const isOutOfStock = product.total_stock === 0
+  const isColorOutOfStock = selectedColor
+    ? variants.filter(v => v.color === selectedColor).every(v => v.stock_quantity === 0)
+    : isOutOfStock
+  const soldOut = isOutOfStock || isColorOutOfStock
+
   const toggle     = useFavoritesStore(s => s.toggle)
   const isFavorite = useFavoritesStore(s => s.isFavorite(product.id, selectedColor))
 
@@ -87,11 +93,24 @@ export default function ProductCard({ product, className }: Props) {
             src={displayUrl}
             alt={product.name}
             fill
-            className="object-cover object-center transition-all duration-700"
+            className={clsx(
+              'object-cover object-center transition-all duration-700',
+              soldOut && 'grayscale opacity-60',
+            )}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
 
+          {/* Overlay esgotado */}
+          {soldOut && (
+            <div className="absolute inset-0 bg-gray-100/50 flex items-center justify-center">
+              <span className="bg-gray-700/80 text-white text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest">
+                Esgotado
+              </span>
+            </div>
+          )}
+
           {/* Badges */}
+          {!soldOut && (
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
             {product.is_on_sale && product.discount_percentage && (
               <span className="bg-wine-900 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow uppercase tracking-widest">
@@ -104,6 +123,7 @@ export default function ProductCard({ product, className }: Props) {
               </span>
             )}
           </div>
+          )}
 
           {/* Favoritar */}
           <button
@@ -170,13 +190,19 @@ export default function ProductCard({ product, className }: Props) {
         <div className="mt-auto" />
       </div>
 
-      {/* ─── Comprar ─ */}
-      <Link
-        href={productUrl}
-        className="mt-2 w-full bg-wine-900 hover:bg-wine-800 text-white font-sans text-[10px] font-bold tracking-[0.3em] uppercase py-3 flex items-center justify-center gap-2 transition-colors duration-300"
-      >
-        <ShoppingBag size={13} strokeWidth={2} /> Comprar
-      </Link>
+      {/* ─── Comprar / Esgotado ─ */}
+      {soldOut ? (
+        <div className="mt-2 w-full bg-gray-200 text-gray-400 font-sans text-[10px] font-bold tracking-[0.3em] uppercase py-3 flex items-center justify-center gap-2 cursor-not-allowed select-none">
+          Esgotado
+        </div>
+      ) : (
+        <Link
+          href={productUrl}
+          className="mt-2 w-full bg-wine-900 hover:bg-wine-800 text-white font-sans text-[10px] font-bold tracking-[0.3em] uppercase py-3 flex items-center justify-center gap-2 transition-colors duration-300"
+        >
+          <ShoppingBag size={13} strokeWidth={2} /> Comprar
+        </Link>
+      )}
     </motion.div>
   )
 }
