@@ -32,14 +32,18 @@ export default function ProductCard({ product, className }: Props) {
       .map(v => v.color!)
   }, [variants])
 
-  // Capa de cada cor: primeira imagem com aquela cor + hex para fallback
+  // Capa de cada cor: primeira imagem com aquela cor + hex para fallback + stock
   const colorCovers = useMemo(() =>
     uniqueColors.map(color => {
-      const variant = variants.find(v => v.color === color)
+      const variant   = variants.find(v => v.color === color)
+      const colorSoldOut = variants
+        .filter(v => v.color === color)
+        .every(v => v.stock_quantity === 0)
       return {
         color,
         hex: colorHex(color, variant?.color_hex),
         img: allImages.find(img => img.color === color) ?? null,
+        soldOut: colorSoldOut,
       }
     })
   , [uniqueColors, allImages, variants])
@@ -155,11 +159,11 @@ export default function ProductCard({ product, className }: Props) {
         {/* Miniaturas por cor */}
         {colorCovers.length > 0 && (
           <div className="flex gap-2 mb-3 flex-wrap">
-            {colorCovers.map(({ color, hex, img }) => (
+            {colorCovers.map(({ color, hex, img, soldOut: colorSoldOut }) => (
               <button
                 key={color}
                 onClick={() => setSelectedColor(color)}
-                title={color}
+                title={colorSoldOut ? `${color} — Esgotado` : color}
                 className={clsx(
                   'relative shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-200',
                   'w-12 h-14',
@@ -173,14 +177,24 @@ export default function ProductCard({ product, className }: Props) {
                     src={img.url}
                     alt={color}
                     fill
-                    className="object-cover object-center"
+                    className={clsx(
+                      'object-cover object-center',
+                      colorSoldOut && 'grayscale opacity-50',
+                    )}
                     sizes="48px"
                   />
                 ) : (
                   <div
-                    className="w-full h-full flex items-center justify-center"
-                    style={{ backgroundColor: hex }}
+                    className={clsx(
+                      'w-full h-full flex items-center justify-center',
+                      colorSoldOut && 'opacity-40',
+                    )}
+                    style={{ backgroundColor: colorSoldOut ? '#d1d5db' : hex }}
                   />
+                )}
+                {/* Overlay cinza para cores esgotadas */}
+                {colorSoldOut && (
+                  <div className="absolute inset-0 bg-gray-200/60" />
                 )}
               </button>
             ))}
