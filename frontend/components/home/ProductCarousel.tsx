@@ -26,14 +26,26 @@ function CarouselCard({ product }: { product: Product }) {
   }, [variants])
 
   const colorCovers = useMemo(() =>
-    uniqueColors.map(color => ({
-      color,
-      img: allImages.find(img => img.color === color) ?? null,
-    }))
-  , [uniqueColors, allImages])
+    uniqueColors.map(color => {
+      const colorSoldOut = variants
+        .filter(v => v.color === color)
+        .every(v => v.stock_quantity === 0)
+      return {
+        color,
+        img: allImages.find(img => img.color === color) ?? null,
+        soldOut: colorSoldOut,
+      }
+    })
+  , [uniqueColors, allImages, variants])
 
   const [selectedColor, setSelectedColor] = useState<string | null>(colorCovers[0]?.color ?? null)
   const [hovered, setHovered] = useState(false)
+
+  const isOutOfStock = product.total_stock === 0
+  const isColorOutOfStock = selectedColor
+    ? variants.filter(v => v.color === selectedColor).every(v => v.stock_quantity === 0)
+    : isOutOfStock
+  const soldOut = isOutOfStock || isColorOutOfStock
 
   const toggle     = useFavoritesStore(s => s.toggle)
   const isFavorite = useFavoritesStore(s => s.isFavorite(product.id, selectedColor))
@@ -69,14 +81,21 @@ function CarouselCard({ product }: { product: Product }) {
             alt={product.name}
             fill
             sizes="280px"
-            className="object-cover object-center transition-all duration-700"
+            className={clsx('object-cover object-center transition-all duration-700', soldOut && 'grayscale opacity-60')}
           />
-          {product.is_on_sale && product.discount_percentage && (
+          {soldOut && (
+            <div className="absolute inset-0 bg-gray-100/50 flex items-center justify-center">
+              <span className="bg-gray-700/80 text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest">
+                Esgotado
+              </span>
+            </div>
+          )}
+          {!soldOut && product.is_on_sale && product.discount_percentage && (
             <div className="absolute top-3 left-3 bg-wine-900 text-cream-100 text-[9px] font-bold tracking-[0.2em] uppercase px-2.5 py-1 rounded-full">
               -{product.discount_percentage}%
             </div>
           )}
-          {product.is_new_arrival && !product.is_on_sale && (
+          {!soldOut && product.is_new_arrival && !product.is_on_sale && (
             <div className="absolute top-3 left-3 bg-white text-wine-900 text-[9px] font-bold tracking-[0.2em] uppercase px-2.5 py-1 rounded-full border border-wine-900/10">
               Novo
             </div>
@@ -106,11 +125,11 @@ function CarouselCard({ product }: { product: Product }) {
         {/* Miniaturas por cor */}
         {colorCovers.length > 0 && (
           <div className="flex gap-2 mb-3 flex-wrap">
-            {colorCovers.map(({ color, img }) => (
+            {colorCovers.map(({ color, img, soldOut: colorSoldOut }) => (
               <button
                 key={color}
                 onClick={() => setSelectedColor(color)}
-                title={color}
+                title={colorSoldOut ? `${color} — Esgotado` : color}
                 className={clsx(
                   'relative shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-200',
                   'w-11 h-[52px]',
@@ -120,10 +139,11 @@ function CarouselCard({ product }: { product: Product }) {
                 )}
               >
                 {img ? (
-                  <SafeImage src={img.url} alt={color} fill className="object-cover object-center" sizes="44px" />
+                  <SafeImage src={img.url} alt={color} fill className={clsx('object-cover object-center', colorSoldOut && 'grayscale opacity-50')} sizes="44px" />
                 ) : (
-                  <div className="w-full h-full bg-gray-100" />
+                  <div className={clsx('w-full h-full bg-gray-100', colorSoldOut && 'opacity-40')} />
                 )}
+                {colorSoldOut && <div className="absolute inset-0 bg-gray-200/60" />}
               </button>
             ))}
           </div>
@@ -133,12 +153,18 @@ function CarouselCard({ product }: { product: Product }) {
       </div>
 
       {/* Comprar */}
-      <Link
-        href={productUrl}
-        className="mt-1 w-full bg-wine-900 hover:bg-wine-800 text-cream-100 font-sans text-[10px] font-bold tracking-[0.3em] uppercase py-3 flex items-center justify-center gap-2 transition-colors duration-300"
-      >
-        <ShoppingBag size={13} strokeWidth={2} /> Comprar
-      </Link>
+      {soldOut ? (
+        <div className="mt-1 w-full bg-gray-200 text-gray-400 font-sans text-[10px] font-bold tracking-[0.3em] uppercase py-3 flex items-center justify-center gap-2 cursor-not-allowed select-none">
+          Esgotado
+        </div>
+      ) : (
+        <Link
+          href={productUrl}
+          className="mt-1 w-full bg-wine-900 hover:bg-wine-800 text-cream-100 font-sans text-[10px] font-bold tracking-[0.3em] uppercase py-3 flex items-center justify-center gap-2 transition-colors duration-300"
+        >
+          <ShoppingBag size={13} strokeWidth={2} /> Comprar
+        </Link>
+      )}
     </div>
   )
 }

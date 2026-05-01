@@ -118,6 +118,10 @@ export default function ProductDetail({ product, initialColor }: Props) {
   const currentImage = colorImages[activeImage] ?? colorImages[0]
   const currentPrice = selectedVariant?.final_price ?? product.sale_price ?? product.price
 
+  const isSelectedColorSoldOut = selectedColor
+    ? variants.filter(v => v.color === selectedColor).every(v => v.stock_quantity === 0)
+    : product.total_stock === 0
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
 
@@ -160,7 +164,10 @@ export default function ProductDetail({ product, initialColor }: Props) {
               fill
               priority
               quality={95}
-              className="object-contain object-center transition-transform duration-700 ease-out group-hover/img:scale-110"
+              className={clsx(
+                'object-contain object-center transition-transform duration-700 ease-out group-hover/img:scale-110',
+                isSelectedColorSoldOut && 'grayscale opacity-60'
+              )}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-300">
@@ -168,7 +175,15 @@ export default function ProductDetail({ product, initialColor }: Props) {
             </div>
           )}
 
-          {product.is_on_sale && product.discount_percentage && (
+          {isSelectedColorSoldOut && (
+            <div className="absolute inset-0 bg-gray-100/50 flex items-center justify-center z-10">
+              <span className="bg-gray-700/80 text-white text-sm font-bold px-5 py-2 rounded-full uppercase tracking-widest">
+                Esgotado
+              </span>
+            </div>
+          )}
+
+          {!isSelectedColorSoldOut && product.is_on_sale && product.discount_percentage && (
             <div className="absolute top-4 left-4 z-10">
               <span className="badge badge-sale text-sm">-{product.discount_percentage}%</span>
             </div>
@@ -216,17 +231,23 @@ export default function ProductDetail({ product, initialColor }: Props) {
                     key={v.color}
                     onClick={() => handleColorSelect(v.color!)}
                     disabled={!isAvail}
-                    title={v.color ?? ''}
+                    title={isAvail ? (v.color ?? '') : `${v.color} — Esgotado`}
                     className={clsx(
-                      'w-9 h-9 rounded-full transition-all duration-200 relative',
+                      'w-9 h-9 rounded-full transition-all duration-200 relative overflow-hidden',
                       isSelected
                         ? 'ring-2 ring-offset-2 ring-wine-900 scale-110'
                         : 'ring-1 ring-gray-300 hover:ring-gray-500',
-                      !isAvail && 'opacity-30 cursor-not-allowed'
+                      !isAvail && 'opacity-40 cursor-not-allowed'
                     )}
                     style={{ backgroundColor: hex }}
                     aria-label={v.color ?? 'Cor'}
-                  />
+                  >
+                    {!isAvail && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="block w-full h-px bg-gray-500/70 rotate-45" />
+                      </span>
+                    )}
+                  </button>
                 )
               })}
             </div>
