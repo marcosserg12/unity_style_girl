@@ -11,12 +11,7 @@ import SearchOverlay         from '@/components/layout/SearchOverlay'
 import { api } from '@/lib/api'
 import clsx from 'clsx'
 
-const MEGA_CATS = [
-  { label: 'Blusas',    href: '/produtos?category=blusas'    },
-  { label: 'Body',      href: '/produtos?category=body'      },
-  { label: 'Calças',    href: '/produtos?category=calcas'    },
-  { label: 'Conjuntos', href: '/produtos?category=conjuntos' },
-]
+type MegaCat = { label: string; href: string }
 
 const NAV_LINKS = [
   { label: 'CATÁLOGO',                href: '/produtos'                     },
@@ -24,15 +19,6 @@ const NAV_LINKS = [
   { label: 'PROMOÇÃO (até 35% OFF)',  href: '/produtos?filter=sale'         },
 ]
 
-const MOBILE_LINKS = [
-  { label: 'Início',                  href: '/'                             },
-  { label: 'Catálogo',                href: '/produtos'                     },
-  { label: 'Novidades',               href: '/produtos?filter=new_arrivals' },
-  { label: 'Promoção (até 35% OFF)',  href: '/produtos?filter=sale'         },
-  ...MEGA_CATS,
-  { label: 'Quem Somos',             href: '/sobre'                   },
-  { label: 'Contato',                href: '/contato'                      },
-]
 
 const MARQUEE_DEFAULT = [
   '✦ NOVA COLEÇÃO VERÃO 2025',
@@ -47,7 +33,7 @@ const MEGA_MENU_FALLBACK = {
   caption2: 'Nova Coleção 2025',
 }
 
-function MegaMenu() {
+function MegaMenu({ cats }: { cats: MegaCat[] }) {
   const [open, setOpen]       = useState(false)
   const [menuCfg, setMenuCfg] = useState(MEGA_MENU_FALLBACK)
   const ref = useRef<HTMLDivElement>(null)
@@ -84,7 +70,7 @@ function MegaMenu() {
         <div className="absolute top-full left-0 w-[480px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 z-50 flex">
           <div className="w-52 p-6 border-r border-gray-100 shrink-0">
             <p className="font-sans text-[9px] font-bold tracking-[0.3em] uppercase text-gray-400 mb-4">Categorias</p>
-            {MEGA_CATS.map(cat => (
+            {cats.map(cat => (
               <Link
                 key={cat.href}
                 href={cat.href}
@@ -123,6 +109,7 @@ export default function Header() {
   const [catsOpen,      setCatsOpen]      = useState(false)
   const [mounted,       setMounted]       = useState(false)
   const [marqueeItems,  setMarqueeItems]  = useState<string[]>(MARQUEE_DEFAULT)
+  const [megaCats,      setMegaCats]      = useState<MegaCat[]>([])
   const itemCount   = useCartStore(s => s.itemCount)
   const favCount    = useFavoritesStore(s => s.count)
 
@@ -160,6 +147,16 @@ export default function Header() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings`)
       .then(r => r.json())
       .then(d => { if (d.marquee_items?.length) setMarqueeItems(d.marquee_items) })
+      .catch(() => {})
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`)
+      .then(r => r.json())
+      .then((data: { name: string; slug: string; is_active: boolean; parent_id: number | null }[]) => {
+        setMegaCats(
+          data
+            .filter(c => c.is_active && c.parent_id === null)
+            .map(c => ({ label: c.name, href: `/produtos?category=${c.slug}` }))
+        )
+      })
       .catch(() => {})
     window.addEventListener('storage', checkAuth)
 
@@ -313,7 +310,7 @@ export default function Header() {
             </Link>
 
             {/* Roupas por Categoria — mega menu */}
-            <MegaMenu />
+            <MegaMenu cats={megaCats} />
 
             {NAV_LINKS.map(link => (
               <Link
@@ -382,7 +379,7 @@ export default function Header() {
                 </button>
                 {catsOpen && (
                   <div className="bg-cream-100/60 border-t border-gray-100">
-                    {MEGA_CATS.map(cat => (
+                    {megaCats.map(cat => (
                       <Link
                         key={cat.href}
                         href={cat.href}

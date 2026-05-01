@@ -1,16 +1,9 @@
 'use client'
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useEffect, useState } from 'react'
 import { X, SlidersHorizontal, Search } from 'lucide-react'
 import clsx from 'clsx'
-
-const CATEGORIES = [
-  { label: 'Blusas',    value: 'blusas'    },
-  { label: 'Body',      value: 'body'      },
-  { label: 'Calças',    value: 'calcas'    },
-  { label: 'Conjuntos', value: 'conjuntos' },
-]
 
 const SIZES = ['PP', 'P', 'M', 'G', 'GG', 'Único']
 
@@ -50,6 +43,20 @@ export default function ProductFilters({ onClose, isMobile }: Props) {
   const pathname    = usePathname()
   const params      = useSearchParams()
   const searchTimer = useRef<ReturnType<typeof setTimeout>>()
+
+  const [categories, setCategories] = useState<{ label: string; value: string }[]>([])
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`)
+      .then(r => r.json())
+      .then((data: { name: string; slug: string; is_active: boolean; parent_id: number | null }[]) => {
+        setCategories(
+          data
+            .filter(c => c.is_active && c.parent_id === null)
+            .map(c => ({ label: c.name, value: c.slug }))
+        )
+      })
+      .catch(() => {})
+  }, [])
 
   const updateParam = useCallback((key: string, value: string | null) => {
     const next = new URLSearchParams(params.toString())
@@ -152,7 +159,7 @@ export default function ProductFilters({ onClose, isMobile }: Props) {
       {/* Categoria */}
       <Section title="Categoria">
         <div className="space-y-1">
-          {CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <button
               key={cat.value}
               onClick={() => updateParam('category', activeCategory === cat.value ? null : cat.value)}
