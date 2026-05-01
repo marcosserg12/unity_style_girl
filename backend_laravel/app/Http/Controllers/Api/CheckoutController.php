@@ -31,12 +31,53 @@ class CheckoutController extends Controller
             'customer_name'  => ['required', 'string', 'max:100'],
             'customer_phone' => ['required', 'string', 'max:20'],
             'payment_method' => ['required', 'in:pix,credit_card'],
+            'address_id'     => ['nullable', 'integer'],
+            'street'         => ['nullable', 'string', 'max:200'],
+            'number'         => ['nullable', 'string', 'max:20'],
+            'complement'     => ['nullable', 'string', 'max:100'],
+            'neighborhood'   => ['nullable', 'string', 'max:100'],
+            'city'           => ['nullable', 'string', 'max:100'],
+            'state'          => ['nullable', 'string', 'max:2'],
+            'zip_code'       => ['nullable', 'string', 'max:20'],
+            'save_address'   => ['boolean'],
         ]);
 
         $cart = $this->resolveCart($request, $user->id);
 
         if (!$cart || $cart->items->isEmpty()) {
             return response()->json(['message' => 'Seu carrinho está vazio.'], 422);
+        }
+
+        // Resolve endereço de entrega
+        $shippingAddress = [
+            'recipient_name' => $validated['customer_name'],
+            'whatsapp'       => $validated['customer_phone'],
+        ];
+
+        if (!empty($validated['address_id'])) {
+            $addr = $user->addresses()->find($validated['address_id']);
+            if ($addr) {
+                $shippingAddress = array_merge($shippingAddress, $addr->toShippingArray());
+            }
+        } elseif (!empty($validated['street'])) {
+            $addressData = [
+                'street'       => $validated['street'],
+                'number'       => $validated['number'] ?? '',
+                'complement'   => $validated['complement'] ?? null,
+                'neighborhood' => $validated['neighborhood'] ?? '',
+                'city'         => $validated['city'] ?? '',
+                'state'        => $validated['state'] ?? '',
+                'zip_code'     => $validated['zip_code'] ?? '',
+            ];
+            $shippingAddress = array_merge($shippingAddress, $addressData);
+
+            if (!empty($validated['save_address'])) {
+                $isFirst = $user->addresses()->count() === 0;
+                $user->addresses()->create(array_merge(
+                    ['recipient_name' => $validated['customer_name'], 'is_default' => $isFirst],
+                    $addressData
+                ));
+            }
         }
 
         $subtotal  = $cart->total;
@@ -53,10 +94,7 @@ class CheckoutController extends Controller
                 'discount_amount'  => 0,
                 'total'            => $subtotal,
                 'payment_method'   => $validated['payment_method'],
-                'shipping_address' => [
-                    'recipient_name' => $validated['customer_name'],
-                    'whatsapp'       => $validated['customer_phone'],
-                ],
+                'shipping_address' => $shippingAddress,
             ], $cartItems);
 
             $cart->items()->delete();

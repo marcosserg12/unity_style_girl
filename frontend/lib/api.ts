@@ -109,6 +109,13 @@ export const bannersApi = {
     api.get('/banners'),
 }
 
+export const addressesApi = {
+  list:       ()           => api.get('/addresses'),
+  create:     (data: Record<string, unknown>) => api.post('/addresses', data),
+  setDefault: (id: number) => api.patch(`/addresses/${id}/default`),
+  remove:     (id: number) => api.delete(`/addresses/${id}`),
+}
+
 export const checkoutApi = {
   createPreference: (shippingAddress: Record<string, unknown>) =>
     api.post('/checkout/preference', { shipping_address: shippingAddress }),

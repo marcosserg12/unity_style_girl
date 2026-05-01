@@ -2,6 +2,16 @@ import { formatPrice } from '@/lib/utils'
 
 type PaymentMethod = 'pix' | 'credit_card' | ''
 
+interface AddressInfo {
+  street?:       string
+  number?:       string
+  complement?:   string | null
+  neighborhood?: string
+  city?:         string
+  state?:        string
+  zip_code?:     string
+}
+
 export function buildWaMessage(
   items: { product_name: string; size: string | null; color: string | null; quantity: number; unit_price: number }[],
   total: number,
@@ -9,6 +19,7 @@ export function buildWaMessage(
   phone: string,
   payment: PaymentMethod,
   orderNumber?: string,
+  address?: AddressInfo,
 ): string {
   const linhas = items.map((item, i) => {
     const detalhes = [
@@ -21,6 +32,16 @@ export function buildWaMessage(
 
   const paymentLabel = payment === 'pix' ? 'PIX' : payment === 'credit_card' ? 'Cartão de Crédito' : '—'
 
+  const enderecoLinhas: (string | null)[] = []
+  if (address?.street) {
+    enderecoLinhas.push(``)
+    enderecoLinhas.push(`📍 *Endereço de entrega:*`)
+    enderecoLinhas.push(`${address.street}, ${address.number ?? ''}${address.complement ? ` - ${address.complement}` : ''}`)
+    if (address.neighborhood) enderecoLinhas.push(address.neighborhood)
+    if (address.city)         enderecoLinhas.push(`${address.city}${address.state ? ` – ${address.state}` : ''}`)
+    if (address.zip_code)     enderecoLinhas.push(`CEP: ${address.zip_code}`)
+  }
+
   const msg = [
     orderNumber
       ? `Olá! Quero confirmar meu pedido *${orderNumber}* na Unity Girl Style 🛍️`
@@ -30,6 +51,7 @@ export function buildWaMessage(
     ``,
     `*Total: ${formatPrice(total)}* _(frete a combinar)_`,
     `💳 Forma de pagamento: *${paymentLabel}*`,
+    ...enderecoLinhas,
     ``,
     `Nome: *${name.trim() || '—'}*`,
     phone.trim() ? `WhatsApp: ${phone.trim()}` : null,

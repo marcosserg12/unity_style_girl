@@ -1,9 +1,9 @@
 'use client'
 
-import { useState }     from 'react'
-import Link             from 'next/link'
-import { useRouter }    from 'next/navigation'
-import { useForm }      from 'react-hook-form'
+import { useState }                    from 'react'
+import Link                            from 'next/link'
+import { useRouter, useSearchParams }  from 'next/navigation'
+import { useForm }                     from 'react-hook-form'
 import { zodResolver }  from '@hookform/resolvers/zod'
 import { z }            from 'zod'
 import toast            from 'react-hot-toast'
@@ -21,7 +21,9 @@ type LoginData = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading,  setLoading]  = useState(false)
-  const router = useRouter()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo   = searchParams.get('redirect') ?? '/conta'
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -39,7 +41,7 @@ export default function LoginPage() {
       if (res.user.role === 'admin') {
         router.push('/admin')
       } else {
-        router.push('/conta')
+        router.push(redirectTo)
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message ?? 'Credenciais inválidas.')

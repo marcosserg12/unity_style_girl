@@ -6,22 +6,27 @@
 // Quando pronto, descomentar os blocos marcados com [MP].
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, Loader2, MessageCircle, ShoppingBag, User, CreditCard, QrCode } from 'lucide-react'
+import {
+  ChevronRight, Loader2, MessageCircle, ShoppingBag,
+  User, CreditCard, QrCode, MapPin, Plus, Star, ChevronDown,
+} from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
 import { api, authApi } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import { buildWaMessage } from '@/lib/buildWaMessage'
+import { Address } from '@/lib/types'
 import toast from 'react-hot-toast'
 
-// [MP] import dynamic from 'next/dynamic'
-// [MP] import { Lock, ArrowLeft, Copy, Check } from 'lucide-react'
-// [MP] const MercadoPagoPayment = dynamic(() => import('@mercadopago/sdk-react').then(m => m.Payment), { ssr: false })
-
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5561982395045'
+
+const STATES = [
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
+  'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+]
 
 const inputCls = 'w-full border border-gray-200 px-4 py-2.5 font-sans text-sm text-gray-800 focus:outline-none focus:border-wine-900 transition-colors bg-white placeholder:text-gray-300'
 
@@ -38,57 +43,140 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 type PaymentMethod = 'pix' | 'credit_card' | ''
 
+const emptyAddress = {
+  street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zip_code: '',
+}
+
 export default function CheckoutPage() {
   const router                        = useRouter()
   const { items, total, syncWithApi } = useCartStore()
 
-  const [loading,  setLoading]  = useState(true)
-  const [sending,  setSending]  = useState(false)
-  const [name,     setName]     = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
-  const [payment,  setPayment]  = useState<PaymentMethod>('')
+  const [loading,     setLoading]     = useState(true)
+  const [sending,     setSending]     = useState(false)
+  const [name,        setName]        = useState('')
+  const [whatsapp,    setWhatsapp]    = useState('')
+  const [payment,     setPayment]     = useState<PaymentMethod>('')
 
-  const canSubmit = name.trim() !== '' && whatsapp.trim() !== '' && payment !== ''
+  // Endereços
+  const [addresses,      setAddresses]      = useState<Address[]>([])
+  const [selectedAddrId, setSelectedAddrId] = useState<number | null>(null)
+  const [showNewAddr,    setShowNewAddr]    = useState(false)
+  const [newAddr,        setNewAddr]        = useState(emptyAddress)
+  const [saveAddr,       setSaveAddr]       = useState(false)
+  const [cepLoading,     setCepLoading]     = useState(false)
+
+  const fetchAddresses = useCallback(async () => {
+    try {
+      const { data } = await api.get('/addresses')
+      setAddresses(data)
+      const def = data.find((a: Address) => a.is_default)
+      if (def) setSelectedAddrId(def.id)
+    } catch {}
+  }, [])
 
   useEffect(() => {
     const token = localStorage.getItem('ug_token')
-
-    // Força sincronização com backend antes de liberar a tela
-    syncWithApi().finally(() => setLoading(false))
-
-    if (token) {
-      authApi.me()
-        .then(({ data }) => {
-          if (data.name)  setName(data.name)
-          if (data.phone) setWhatsapp(data.phone)
-        })
-        .catch(() => {})
+    if (!token) {
+      router.replace('/login?redirect=/checkout')
+      return
     }
+
+    Promise.all([
+      syncWithApi(),
+      authApi.me().then(({ data }) => {
+        if (data.name)  setName(data.name)
+        if (data.phone) setWhatsapp(data.phone)
+      }).catch(() => {}),
+      fetchAddresses(),
+    ]).finally(() => setLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCep = async (cep: string) => {
+    const clean = cep.replace(/\D/g, '')
+    setNewAddr(a => ({ ...a, zip_code: cep }))
+    if (clean.length !== 8) return
+    setCepLoading(true)
+    try {
+      const res  = await fetch(`https://viacep.com.br/ws/${clean}/json/`)
+      const data = await res.json()
+      if (!data.erro) {
+        setNewAddr(a => ({
+          ...a,
+          street:       data.logradouro || a.street,
+          neighborhood: data.bairro     || a.neighborhood,
+          city:         data.localidade || a.city,
+          state:        data.uf         || a.state,
+        }))
+      }
+    } catch {}
+    finally { setCepLoading(false) }
+  }
+
+  // Resolve o endereço final para enviar ao backend e ao WhatsApp
+  const resolvedAddress = (() => {
+    if (selectedAddrId) {
+      const a = addresses.find(x => x.id === selectedAddrId)
+      return a ? { id: a.id } : null
+    }
+    if (showNewAddr && newAddr.street) return null // vai como campos individuais
+    return null
+  })()
+
+  const canSubmit = name.trim() !== '' && whatsapp.trim() !== '' && payment !== ''
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
     if (items.length === 0) { toast.error('Seu carrinho está vazio.'); return }
 
+    // Validação de endereço
+    if (!selectedAddrId && showNewAddr) {
+      const { street, number, neighborhood, city, state, zip_code } = newAddr
+      if (!street || !number || !neighborhood || !city || !state || !zip_code) {
+        toast.error('Preencha todos os campos obrigatórios do endereço.')
+        return
+      }
+    }
+
     setSending(true)
     try {
-      const token = localStorage.getItem('ug_token')
-      let savedOrderNumber = ''
+      // Monta payload do endereço
+      const addrPayload: Record<string, unknown> = {}
+      let addrForWa: typeof emptyAddress | null = null
 
-      // Salva o pedido no banco se o usuário estiver logado
-      if (token) {
-        const { data } = await api.post('/checkout/whatsapp', {
-          customer_name:  name.trim(),
-          customer_phone: whatsapp.trim(),
-          payment_method: payment,
+      if (selectedAddrId) {
+        addrPayload.address_id = selectedAddrId
+        const a = addresses.find(x => x.id === selectedAddrId)
+        if (a) addrForWa = { street: a.street, number: a.number, complement: a.complement ?? '', neighborhood: a.neighborhood, city: a.city, state: a.state, zip_code: a.zip_code }
+      } else if (showNewAddr && newAddr.street) {
+        Object.assign(addrPayload, {
+          street:       newAddr.street,
+          number:       newAddr.number,
+          complement:   newAddr.complement || null,
+          neighborhood: newAddr.neighborhood,
+          city:         newAddr.city,
+          state:        newAddr.state,
+          zip_code:     newAddr.zip_code.replace(/\D/g, ''),
+          save_address: saveAddr,
         })
-        savedOrderNumber = data.order_number
-        useCartStore.setState({ items: [], total: 0, itemCount: 0 })
+        addrForWa = newAddr
       }
 
-      // Captura os itens antes de limpar o store para montar a mensagem
-      const waText = buildWaMessage(items, total, name, whatsapp, payment, savedOrderNumber || undefined)
+      const { data } = await api.post('/checkout/whatsapp', {
+        customer_name:  name.trim(),
+        customer_phone: whatsapp.trim(),
+        payment_method: payment,
+        ...addrPayload,
+      })
+
+      const savedOrderNumber = data.order_number
+      useCartStore.setState({ items: [], total: 0, itemCount: 0 })
+
+      const waText = buildWaMessage(
+        items, total, name, whatsapp, payment,
+        savedOrderNumber,
+        addrForWa ?? undefined,
+      )
       sessionStorage.setItem('ug_checkout_confirm', JSON.stringify({
         orderNumber: savedOrderNumber,
         waUrl: `https://wa.me/${WA_NUMBER}?text=${waText}`,
@@ -97,7 +185,6 @@ export default function CheckoutPage() {
       router.push('/checkout/confirmacao')
     } catch (err: any) {
       const msg: string = err.response?.data?.message ?? ''
-      // Se o carrinho esvaziou (pedido anterior já limpou), sincroniza e avisa
       if (msg.toLowerCase().includes('carrinho')) {
         await syncWithApi()
         toast.error('Seu carrinho foi esvaziado. Adicione os produtos novamente.')
@@ -182,6 +269,174 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {/* Endereço de entrega */}
+          <div className="bg-white border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-cream-100/50">
+              <div className="w-7 h-7 bg-wine-900 flex items-center justify-center shrink-0">
+                <MapPin size={14} className="text-cream-100" />
+              </div>
+              <h2 className="font-serif text-lg text-gray-800">Endereço de Entrega</h2>
+            </div>
+
+            <div className="p-6 space-y-4">
+
+              {/* Endereços salvos */}
+              {addresses.length > 0 && (
+                <div className="space-y-3">
+                  {addresses.map(addr => (
+                    <label
+                      key={addr.id}
+                      className={`flex items-start gap-4 border-2 p-4 cursor-pointer transition-all ${
+                        selectedAddrId === addr.id && !showNewAddr
+                          ? 'border-wine-900 bg-wine-900/[0.03]'
+                          : 'border-gray-100 hover:border-gray-200'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="address"
+                        className="mt-1 accent-wine-900 shrink-0"
+                        checked={selectedAddrId === addr.id && !showNewAddr}
+                        onChange={() => { setSelectedAddrId(addr.id); setShowNewAddr(false) }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {addr.label && (
+                            <span className="font-sans text-[10px] uppercase tracking-widest text-wine-900 font-semibold">{addr.label}</span>
+                          )}
+                          {addr.is_default && (
+                            <span className="flex items-center gap-1 text-[10px] text-gray-400 font-sans">
+                              <Star size={9} fill="currentColor" /> Padrão
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-sans text-sm text-gray-700 font-medium mt-0.5">{addr.recipient_name}</p>
+                        <p className="font-sans text-xs text-gray-400 leading-relaxed mt-0.5">
+                          {addr.street}, {addr.number}{addr.complement ? ` — ${addr.complement}` : ''} · {addr.neighborhood} · {addr.city}/{addr.state} · CEP {addr.zip_code}
+                        </p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {/* Botão "Usar outro endereço" */}
+              <button
+                type="button"
+                onClick={() => { setShowNewAddr(v => !v); if (!showNewAddr) setSelectedAddrId(null) }}
+                className={`flex items-center gap-2.5 w-full border-2 border-dashed px-4 py-3.5 font-sans text-sm transition-all ${
+                  showNewAddr
+                    ? 'border-wine-900 text-wine-900 bg-wine-900/[0.03]'
+                    : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-500'
+                }`}
+              >
+                <Plus size={15} />
+                {addresses.length > 0 ? 'Usar outro endereço' : 'Informar endereço de entrega'}
+              </button>
+
+              {/* Form novo endereço */}
+              {showNewAddr && (
+                <div className="space-y-4 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Field label="CEP" required>
+                      <div className="relative">
+                        <input
+                          className={inputCls}
+                          value={newAddr.zip_code}
+                          onChange={e => handleCep(e.target.value)}
+                          placeholder="00000-000"
+                          maxLength={9}
+                        />
+                        {cepLoading && (
+                          <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-gray-400" />
+                        )}
+                      </div>
+                    </Field>
+                    <div className="sm:col-span-2">
+                      <Field label="Rua / Avenida" required>
+                        <input
+                          className={inputCls}
+                          value={newAddr.street}
+                          onChange={e => setNewAddr(a => ({ ...a, street: e.target.value }))}
+                          placeholder="Nome da rua"
+                        />
+                      </Field>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <Field label="Número" required>
+                      <input
+                        className={inputCls}
+                        value={newAddr.number}
+                        onChange={e => setNewAddr(a => ({ ...a, number: e.target.value }))}
+                        placeholder="123"
+                      />
+                    </Field>
+                    <div className="sm:col-span-3">
+                      <Field label="Complemento">
+                        <input
+                          className={inputCls}
+                          value={newAddr.complement}
+                          onChange={e => setNewAddr(a => ({ ...a, complement: e.target.value }))}
+                          placeholder="Apto, Bloco…"
+                        />
+                      </Field>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Field label="Bairro" required>
+                      <input
+                        className={inputCls}
+                        value={newAddr.neighborhood}
+                        onChange={e => setNewAddr(a => ({ ...a, neighborhood: e.target.value }))}
+                        placeholder="Bairro"
+                      />
+                    </Field>
+                    <Field label="Cidade" required>
+                      <input
+                        className={inputCls}
+                        value={newAddr.city}
+                        onChange={e => setNewAddr(a => ({ ...a, city: e.target.value }))}
+                        placeholder="Cidade"
+                      />
+                    </Field>
+                    <Field label="Estado" required>
+                      <div className="relative">
+                        <select
+                          className={`${inputCls} appearance-none pr-9`}
+                          value={newAddr.state}
+                          onChange={e => setNewAddr(a => ({ ...a, state: e.target.value }))}
+                        >
+                          <option value="">UF</option>
+                          {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      </div>
+                    </Field>
+                  </div>
+
+                  <label className="flex items-center gap-2.5 cursor-pointer font-sans text-sm text-gray-600 select-none">
+                    <input
+                      type="checkbox"
+                      checked={saveAddr}
+                      onChange={e => setSaveAddr(e.target.checked)}
+                      className="w-4 h-4 accent-wine-900"
+                    />
+                    Salvar este endereço para próximas compras
+                  </label>
+                </div>
+              )}
+
+              {addresses.length === 0 && !showNewAddr && (
+                <p className="font-sans text-xs text-gray-400 text-center py-2">
+                  Clique acima para informar onde entregar.
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Forma de pagamento */}
           <div className="bg-white border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-cream-100/50">
@@ -239,7 +494,6 @@ export default function CheckoutPage() {
             </p>
           </div>
 
-          {/* Botão — desabilitado até todos os campos preenchidos */}
           <button
             type="submit"
             disabled={sending || !canSubmit}

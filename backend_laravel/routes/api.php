@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\AdminProductController;
 use App\Http\Controllers\Api\Admin\AdminSettingController;
 use App\Http\Controllers\Api\Admin\AdminSizeController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
+use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\CartController;
@@ -67,6 +68,14 @@ Route::prefix('v1')->group(function () {
         // Checkout com Mercado Pago (comentado — aguardando CNPJ)
         // Route::post('/checkout/preference', [CheckoutController::class, 'createPreference']);
         // Route::post('/checkout/pay',        [CheckoutController::class, 'pay']);
+
+        // Endereços do cliente
+        Route::prefix('addresses')->group(function () {
+            Route::get('/',                        [AddressController::class, 'index']);
+            Route::post('/',                       [AddressController::class, 'store']);
+            Route::patch('/{address}/default',     [AddressController::class, 'setDefault']);
+            Route::delete('/{address}',            [AddressController::class, 'destroy']);
+        });
 
         // Pedidos do cliente autenticado
         Route::prefix('orders')->group(function () {
