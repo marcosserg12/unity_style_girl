@@ -35,7 +35,7 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    public function scopeForUser($query, int $userId)
+    public function scopeForUser(\Illuminate\Database\Eloquent\Builder $query, int $userId)
     {
         return $query->where('user_id', $userId);
     }
@@ -50,7 +50,7 @@ class Order extends Model
             'delivered'  => 'Entregue',
             'cancelled'  => 'Cancelado',
             'refunded'   => 'Reembolsado',
-            default      => $this->status,
+            default      => $this->status ?? 'Desconhecido',
         };
     }
 
