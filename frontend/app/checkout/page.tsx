@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ChevronRight, Loader2, MessageCircle, ShoppingBag,
-  User, CreditCard, QrCode, MapPin, Plus, Star, ChevronDown,
+  User, CreditCard, QrCode, MapPin, Plus, Star, ChevronDown, Truck, Store,
 } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
 import { api, authApi } from '@/lib/api'
@@ -42,6 +42,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 type PaymentMethod = 'pix' | 'credit_card' | ''
+type DeliveryType  = 'entrega' | 'retirada' | ''
 
 const emptyAddress = {
   street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zip_code: '',
@@ -56,6 +57,7 @@ export default function CheckoutPage() {
   const [name,        setName]        = useState('')
   const [whatsapp,    setWhatsapp]    = useState('')
   const [payment,     setPayment]     = useState<PaymentMethod>('')
+  const [delivery,    setDelivery]    = useState<DeliveryType>('')
 
   // Endereços
   const [addresses,      setAddresses]      = useState<Address[]>([])
@@ -122,15 +124,15 @@ export default function CheckoutPage() {
     return null
   })()
 
-  const canSubmit = name.trim() !== '' && whatsapp.trim() !== '' && payment !== ''
+  const canSubmit = name.trim() !== '' && whatsapp.trim() !== '' && payment !== '' && delivery !== ''
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
     if (items.length === 0) { toast.error('Seu carrinho está vazio.'); return }
 
-    // Validação de endereço
-    if (!selectedAddrId && showNewAddr) {
+    // Validação de endereço (só para entrega)
+    if (delivery === 'entrega' && !selectedAddrId && showNewAddr) {
       const { street, number, neighborhood, city, state, zip_code } = newAddr
       if (!street || !number || !neighborhood || !city || !state || !zip_code) {
         toast.error('Preencha todos os campos obrigatórios do endereço.')
@@ -140,26 +142,28 @@ export default function CheckoutPage() {
 
     setSending(true)
     try {
-      // Monta payload do endereço
+      // Monta payload do endereço (só para entrega)
       const addrPayload: Record<string, unknown> = {}
       let addrForWa: typeof emptyAddress | null = null
 
-      if (selectedAddrId) {
-        addrPayload.address_id = selectedAddrId
-        const a = addresses.find(x => x.id === selectedAddrId)
-        if (a) addrForWa = { street: a.street, number: a.number, complement: a.complement ?? '', neighborhood: a.neighborhood, city: a.city, state: a.state, zip_code: a.zip_code }
-      } else if (showNewAddr && newAddr.street) {
-        Object.assign(addrPayload, {
-          street:       newAddr.street,
-          number:       newAddr.number,
-          complement:   newAddr.complement || null,
-          neighborhood: newAddr.neighborhood,
-          city:         newAddr.city,
-          state:        newAddr.state,
-          zip_code:     newAddr.zip_code.replace(/\D/g, ''),
-          save_address: saveAddr,
-        })
-        addrForWa = newAddr
+      if (delivery === 'entrega') {
+        if (selectedAddrId) {
+          addrPayload.address_id = selectedAddrId
+          const a = addresses.find(x => x.id === selectedAddrId)
+          if (a) addrForWa = { street: a.street, number: a.number, complement: a.complement ?? '', neighborhood: a.neighborhood, city: a.city, state: a.state, zip_code: a.zip_code }
+        } else if (showNewAddr && newAddr.street) {
+          Object.assign(addrPayload, {
+            street:       newAddr.street,
+            number:       newAddr.number,
+            complement:   newAddr.complement || null,
+            neighborhood: newAddr.neighborhood,
+            city:         newAddr.city,
+            state:        newAddr.state,
+            zip_code:     newAddr.zip_code.replace(/\D/g, ''),
+            save_address: saveAddr,
+          })
+          addrForWa = newAddr
+        }
       }
 
       const { data } = await api.post('/checkout/whatsapp', {
@@ -176,6 +180,7 @@ export default function CheckoutPage() {
         items, total, name, whatsapp, payment,
         savedOrderNumber,
         addrForWa ?? undefined,
+        delivery,
       )
       sessionStorage.setItem('ug_checkout_confirm', JSON.stringify({
         orderNumber: savedOrderNumber,
@@ -269,7 +274,57 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Endereço de entrega */}
+          {/* Tipo de entrega */}
+          <div className="bg-white border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-cream-100/50">
+              <div className="w-7 h-7 bg-wine-900 flex items-center justify-center shrink-0">
+                <Truck size={14} className="text-cream-100" />
+              </div>
+              <h2 className="font-serif text-lg text-gray-800">
+                Tipo de Entrega <span className="text-wine-900 text-sm">*</span>
+              </h2>
+            </div>
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setDelivery('entrega')}
+                className={`flex items-center gap-4 border-2 px-5 py-4 transition-all text-left ${
+                  delivery === 'entrega'
+                    ? 'border-wine-900 bg-wine-900/5'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className={`w-10 h-10 flex items-center justify-center shrink-0 ${delivery === 'entrega' ? 'bg-wine-900' : 'bg-gray-100'}`}>
+                  <Truck size={20} className={delivery === 'entrega' ? 'text-cream-100' : 'text-gray-400'} />
+                </div>
+                <div>
+                  <p className={`font-serif text-base font-medium ${delivery === 'entrega' ? 'text-wine-900' : 'text-gray-700'}`}>Entrega</p>
+                  <p className="font-sans text-xs text-gray-400">Receba em casa</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDelivery('retirada')}
+                className={`flex items-center gap-4 border-2 px-5 py-4 transition-all text-left ${
+                  delivery === 'retirada'
+                    ? 'border-wine-900 bg-wine-900/5'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className={`w-10 h-10 flex items-center justify-center shrink-0 ${delivery === 'retirada' ? 'bg-wine-900' : 'bg-gray-100'}`}>
+                  <Store size={20} className={delivery === 'retirada' ? 'text-cream-100' : 'text-gray-400'} />
+                </div>
+                <div>
+                  <p className={`font-serif text-base font-medium ${delivery === 'retirada' ? 'text-wine-900' : 'text-gray-700'}`}>Retirada</p>
+                  <p className="font-sans text-xs text-gray-400">Buscar no local</p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Endereço de entrega — só aparece quando escolher Entrega */}
+          {delivery === 'entrega' && (
           <div className="bg-white border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-cream-100/50">
               <div className="w-7 h-7 bg-wine-900 flex items-center justify-center shrink-0">
@@ -436,6 +491,7 @@ export default function CheckoutPage() {
               )}
             </div>
           </div>
+          )}
 
           {/* Forma de pagamento */}
           <div className="bg-white border border-gray-100 shadow-sm">
@@ -511,7 +567,7 @@ export default function CheckoutPage() {
 
           {!canSubmit && (
             <p className="text-center font-sans text-xs text-gray-400">
-              Preencha nome, WhatsApp e selecione a forma de pagamento para continuar.
+              Preencha nome, WhatsApp, tipo de entrega e forma de pagamento para continuar.
             </p>
           )}
         </form>
@@ -543,11 +599,15 @@ export default function CheckoutPage() {
               <div className="flex justify-between font-sans text-sm text-gray-500">
                 <span>Subtotal</span><span>{formatPrice(total)}</span>
               </div>
-              <div className="flex justify-between font-sans text-sm text-gray-500">
-                <span>Frete</span>
-                <span className="text-green-700 font-semibold">A combinar</span>
-              </div>
-              <p className="font-sans text-[10px] text-gray-400">Entrega local combinada via WhatsApp</p>
+              {delivery !== 'retirada' && (
+                <div className="flex justify-between font-sans text-sm text-gray-500">
+                  <span>Frete</span>
+                  <span className="text-green-700 font-semibold">A combinar</span>
+                </div>
+              )}
+              <p className="font-sans text-[10px] text-gray-400">
+                {delivery === 'retirada' ? 'Retirada no local — sem frete' : 'Entrega local combinada via WhatsApp'}
+              </p>
               <div className="flex justify-between font-serif text-lg font-semibold pt-2 border-t border-gray-100">
                 <span>Total</span>
                 <span className="text-wine-900">{formatPrice(total)}</span>

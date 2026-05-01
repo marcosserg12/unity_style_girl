@@ -1,6 +1,7 @@
 import { formatPrice } from '@/lib/utils'
 
-type PaymentMethod = 'pix' | 'credit_card' | ''
+type PaymentMethod  = 'pix' | 'credit_card' | ''
+type DeliveryType   = 'entrega' | 'retirada' | ''
 
 interface AddressInfo {
   street?:       string
@@ -20,6 +21,7 @@ export function buildWaMessage(
   payment: PaymentMethod,
   orderNumber?: string,
   address?: AddressInfo,
+  deliveryType?: DeliveryType,
 ): string {
   const linhas = items.map((item, i) => {
     const detalhes = [
@@ -30,17 +32,28 @@ export function buildWaMessage(
     return `${i + 1}. *${item.product_name}*${detalhes ? `\n   ${detalhes}` : ''}`
   })
 
-  const paymentLabel = payment === 'pix' ? 'PIX' : payment === 'credit_card' ? 'Cartão de Crédito' : '—'
+  const paymentLabel  = payment === 'pix' ? 'PIX' : payment === 'credit_card' ? 'Cartão de Crédito' : '—'
+  const isRetirada    = deliveryType === 'retirada'
+  const totalLabel    = isRetirada
+    ? `*Total: ${formatPrice(total)}*`
+    : `*Total: ${formatPrice(total)}* _(frete a combinar)_`
 
-  const enderecoLinhas: (string | null)[] = []
-  if (address?.street) {
-    enderecoLinhas.push(``)
-    enderecoLinhas.push(`📍 *Endereço de entrega:*`)
-    enderecoLinhas.push(`${address.street}, ${address.number ?? ''}${address.complement ? ` - ${address.complement}` : ''}`)
-    if (address.neighborhood) enderecoLinhas.push(address.neighborhood)
-    if (address.city)         enderecoLinhas.push(`${address.city}${address.state ? ` – ${address.state}` : ''}`)
-    if (address.zip_code)     enderecoLinhas.push(`CEP: ${address.zip_code}`)
+  const entregaLinhas: (string | null)[] = []
+  if (isRetirada) {
+    entregaLinhas.push(``)
+    entregaLinhas.push(`🏪 *Retirada no local* (combinaremos o ponto de retirada)`)
+  } else if (address?.street) {
+    entregaLinhas.push(``)
+    entregaLinhas.push(`🚚 *Endereço de entrega:*`)
+    entregaLinhas.push(`${address.street}, ${address.number ?? ''}${address.complement ? ` - ${address.complement}` : ''}`)
+    if (address.neighborhood) entregaLinhas.push(address.neighborhood)
+    if (address.city)         entregaLinhas.push(`${address.city}${address.state ? ` – ${address.state}` : ''}`)
+    if (address.zip_code)     entregaLinhas.push(`CEP: ${address.zip_code}`)
   }
+
+  const fechamento = isRetirada
+    ? `Aguardo o retorno para combinarmos a retirada. Obrigado(a)!`
+    : `Aguardo o retorno para combinarmos a entrega. Obrigado(a)!`
 
   const msg = [
     orderNumber
@@ -49,14 +62,14 @@ export function buildWaMessage(
     ``,
     ...linhas,
     ``,
-    `*Total: ${formatPrice(total)}* _(frete a combinar)_`,
+    totalLabel,
     `💳 Forma de pagamento: *${paymentLabel}*`,
-    ...enderecoLinhas,
+    ...entregaLinhas,
     ``,
     `Nome: *${name.trim() || '—'}*`,
     phone.trim() ? `WhatsApp: ${phone.trim()}` : null,
     ``,
-    `Aguardo o retorno para combinarmos a entrega. Obrigado(a)!`,
+    fechamento,
   ].filter(l => l !== null).join('\n')
 
   return encodeURIComponent(msg)
