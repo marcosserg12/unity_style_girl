@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\NewOrderMail;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Repositories\OrderRepository;
 use App\Services\MercadoPagoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class CheckoutController extends Controller
 {
@@ -98,6 +100,8 @@ class CheckoutController extends Controller
             ], $cartItems);
 
             $cart->items()->delete();
+
+            $this->notifyStore($order);
 
             return response()->json([
                 'order_number' => $order->order_number,
@@ -217,6 +221,10 @@ class CheckoutController extends Controller
                 'status'                 => $payment->status === 'approved' ? 'paid' : 'pending',
             ]);
 
+            if ($payment->status === 'approved') {
+                $this->notifyStore($order->fresh(['items', 'user']));
+            }
+
             $response = [
                 'status'     => $payment->status,
                 'payment_id' => $payment->id,
@@ -239,6 +247,16 @@ class CheckoutController extends Controller
 
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    private function notifyStore(Order $order): void
+    {
+        $to = config('mail.order_notify_email', env('ORDER_NOTIFY_EMAIL', 'unitygirlstyle@gmail.com'));
+        try {
+            Mail::to($to)->send(new NewOrderMail($order->loadMissing(['items', 'user'])));
+        } catch (\Throwable $e) {
+            \Log::error('NewOrderMail failed', ['order' => $order->order_number, 'error' => $e->getMessage()]);
         }
     }
 
