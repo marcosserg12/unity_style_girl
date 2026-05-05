@@ -11,10 +11,10 @@
     .header h1 { color: #fff; margin: 0; font-size: 22px; letter-spacing: .05em; }
     .header p { color: #f0c4c4; margin: 6px 0 0; font-size: 13px; }
     .body { padding: 28px 32px; }
-    .meta { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
-    .badge { background: #f5f5f5; border-radius: 6px; padding: 10px 16px; flex: 1; min-width: 120px; }
+    .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    .badge { background: #f5f5f5; border-radius: 6px; padding: 10px 16px; }
     .badge span { display: block; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .08em; }
-    .badge strong { display: block; color: #222; font-size: 15px; margin-top: 2px; }
+    .badge strong { display: block; color: #222; font-size: 15px; margin-top: 2px; word-break: break-word; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
     thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #888; border-bottom: 1px solid #eee; padding: 6px 8px; text-align: left; }
     tbody td { padding: 10px 8px; font-size: 14px; color: #333; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
@@ -28,7 +28,7 @@
 <div class="wrap">
   <div class="header">
     <h1>Unity Girl Style</h1>
-    <p>Novo pedido recebido!</p>
+    <p>Novo Pedido #{{ $order->order_number }}</p>
   </div>
 
   <div class="body">
