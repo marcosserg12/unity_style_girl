@@ -58,8 +58,14 @@ function CarouselCard({ product }: { product: Product }) {
     return filtered.length > 0 ? filtered : allImages
   }, [allImages, selectedColor])
 
-  const displayUrl = hovered && colorImages.length > 1
-    ? colorImages[1].url
+  // Hover só troca imagem se existirem 2+ fotos da mesma cor — evita mostrar foto de outra cor
+  const hoverImages = useMemo(() => {
+    if (!selectedColor) return allImages
+    return allImages.filter(img => img.color === selectedColor)
+  }, [allImages, selectedColor])
+
+  const displayUrl = hovered && hoverImages.length > 1
+    ? hoverImages[1].url
     : (colorImages[0]?.url ?? FALLBACK)
 
   const currentPrice = product.sale_price ?? product.price
