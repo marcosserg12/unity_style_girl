@@ -19,11 +19,7 @@ class OrderRepository
             ]);
 
             foreach ($cartItems as $item) {
-                $variant = ProductVariant::lockForUpdate()->findOrFail($item['variant_id']);
-
-                if ($variant->stock_quantity < $item['quantity']) {
-                    throw new \Exception("Estoque insuficiente para {$variant->product->name} - {$variant->size}");
-                }
+                $variant = ProductVariant::findOrFail($item['variant_id']);
 
                 OrderItem::create([
                     'order_id'           => $order->id,
@@ -40,8 +36,6 @@ class OrderRepository
                         'image_url' => $variant->product->primaryImage?->url,
                     ],
                 ]);
-
-                $variant->decrement('stock_quantity', $item['quantity']);
             }
 
             return $order->load('items');

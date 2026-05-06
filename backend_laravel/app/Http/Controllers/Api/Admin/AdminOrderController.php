@@ -52,21 +52,39 @@ class AdminOrderController extends Controller
 
         $newStatus = $request->status;
 
-        DB::transaction(function () use ($order, $newStatus, $request) {
-            // Ao cancelar: restaura estoque de cada variante
-            if ($newStatus === 'cancelled' && $order->status !== 'cancelled') {
-                $order->loadMissing('items');
+        // Statuses que indicam que o pedido foi confirmado (estoque deve ser consumido)
+        $confirmingStatuses = ['paid', 'processing', 'shipped', 'delivered'];
+        $stockConsumedStatuses = ['paid', 'processing', 'shipped', 'delivered'];
+
+        DB::transaction(function () use ($order, $newStatus, $request, $confirmingStatuses, $stockConsumedStatuses) {
+            $order->loadMissing('items');
+
+            // Ao confirmar um pedido pendente: decrementa estoque
+            if (in_array($newStatus, $confirmingStatuses) && $order->status === 'pending') {
                 foreach ($order->items as $item) {
                     if ($item->product_variant_id) {
                         ProductVariant::where('id', $item->product_variant_id)
-                                      ->increment('stock_quantity', $item->quantity);
+                                      ->lockForUpdate()
+                                      ->first()
+                                      ?->decrement('stock_quantity', $item->quantity);
+                    }
+                }
+            }
+
+            // Ao cancelar: restaura estoque apenas se já tinha sido confirmado (saiu do pending)
+            if ($newStatus === 'cancelled' && $order->status !== 'cancelled') {
+                if (in_array($order->status, $stockConsumedStatuses)) {
+                    foreach ($order->items as $item) {
+                        if ($item->product_variant_id) {
+                            ProductVariant::where('id', $item->product_variant_id)
+                                          ->increment('stock_quantity', $item->quantity);
+                        }
                     }
                 }
             }
 
             $data = ['status' => $newStatus];
 
-            // Ao concluir: marca payment_status como paid se ainda não estiver
             if ($newStatus === 'delivered') {
                 $data['payment_status'] = 'paid';
             }
