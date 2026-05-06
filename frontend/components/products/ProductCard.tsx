@@ -70,7 +70,7 @@ export default function ProductCard({ product, className }: Props) {
 
   // Hover só troca imagem se existirem 2+ fotos da mesma cor — evita mostrar foto de outra cor
   const hoverImages = useMemo(() => {
-    if (!selectedColor) return allImages
+    if (!selectedColor) return []
     return allImages.filter(img => img.color === selectedColor)
   }, [allImages, selectedColor])
 
