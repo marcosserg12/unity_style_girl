@@ -69,14 +69,13 @@ export default function ProductCard({ product, className }: Props) {
   }, [allImages, selectedColor])
 
   // Hover só troca imagem se existirem 2+ fotos da mesma cor — evita mostrar foto de outra cor
-  const hoverImages = useMemo(() => {
-    if (!selectedColor) return []
-    return allImages.filter(img => img.color === selectedColor)
+  const hoverImage = useMemo(() => {
+    if (!selectedColor) return null
+    const filtered = allImages.filter(img => img.color === selectedColor)
+    return filtered.length > 1 ? filtered[1].url : null
   }, [allImages, selectedColor])
 
-  const displayUrl = hovered && hoverImages.length > 1
-    ? hoverImages[1].url
-    : (colorImages[0]?.url ?? FALLBACK)
+  const displayUrl = hovered && hoverImage ? hoverImage : (colorImages[0]?.url ?? FALLBACK)
 
   const currentPrice = product.sale_price ?? product.price
 
@@ -96,8 +95,8 @@ export default function ProductCard({ product, className }: Props) {
       <Link href={productUrl} className="block relative">
         <div
           className="relative aspect-[3/4] overflow-hidden bg-[#f8f8f8] rounded-2xl"
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
+          onMouseEnter={hoverImage ? () => setHovered(true) : undefined}
+          onMouseLeave={hoverImage ? () => setHovered(false) : undefined}
         >
           <SafeImage
             src={displayUrl}
