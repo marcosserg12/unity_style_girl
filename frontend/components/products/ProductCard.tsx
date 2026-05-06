@@ -45,10 +45,10 @@ export default function ProductCard({ product, className }: Props) {
         img: allImages.find(img => img.color === color) ?? null,
         soldOut: colorSoldOut,
       }
-    })
+    }).sort((a, b) => Number(a.soldOut) - Number(b.soldOut))
   , [uniqueColors, allImages, variants])
 
-  const firstColor = colorCovers[0]?.color ?? null
+  const firstColor = colorCovers.find(c => !c.soldOut)?.color ?? colorCovers[0]?.color ?? null
   const [selectedColor, setSelectedColor] = useState<string | null>(firstColor)
   const [hovered, setHovered] = useState(false)
 

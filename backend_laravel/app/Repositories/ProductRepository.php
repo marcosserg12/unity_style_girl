@@ -60,7 +60,11 @@ class ProductRepository
             default      => ['created_at', 'desc'],
         };
 
-        return $query->orderBy($sortCol, $sortDir)->paginate($perPage);
+        // Produtos completamente esgotados sempre vão para o fim
+        return $query
+            ->orderByRaw('(SELECT SUM(stock_quantity) FROM product_variants WHERE product_id = products.id AND is_active = 1) = 0 ASC')
+            ->orderBy($sortCol, $sortDir)
+            ->paginate($perPage);
     }
 
     public function findBySlug(string $slug): ?Product

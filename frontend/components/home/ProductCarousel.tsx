@@ -35,10 +35,12 @@ function CarouselCard({ product }: { product: Product }) {
         img: allImages.find(img => img.color === color) ?? null,
         soldOut: colorSoldOut,
       }
-    })
+    }).sort((a, b) => Number(a.soldOut) - Number(b.soldOut))
   , [uniqueColors, allImages, variants])
 
-  const [selectedColor, setSelectedColor] = useState<string | null>(colorCovers[0]?.color ?? null)
+  const [selectedColor, setSelectedColor] = useState<string | null>(
+    colorCovers.find(c => !c.soldOut)?.color ?? colorCovers[0]?.color ?? null
+  )
   const [hovered, setHovered] = useState(false)
 
   const isOutOfStock = product.total_stock === 0
