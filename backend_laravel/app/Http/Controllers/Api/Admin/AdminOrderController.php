@@ -59,14 +59,13 @@ class AdminOrderController extends Controller
         DB::transaction(function () use ($order, $newStatus, $request, $confirmingStatuses, $stockConsumedStatuses) {
             $order->loadMissing('items');
 
-            // Ao confirmar um pedido pendente: decrementa estoque
+            // Ao confirmar um pedido pendente: decrementa estoque (só se houver saldo)
             if (in_array($newStatus, $confirmingStatuses) && $order->status === 'pending') {
                 foreach ($order->items as $item) {
                     if ($item->product_variant_id) {
                         ProductVariant::where('id', $item->product_variant_id)
-                                      ->lockForUpdate()
-                                      ->first()
-                                      ?->decrement('stock_quantity', $item->quantity);
+                                      ->where('stock_quantity', '>=', $item->quantity)
+                                      ->decrement('stock_quantity', $item->quantity);
                     }
                 }
             }
