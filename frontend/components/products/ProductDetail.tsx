@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Image from 'next/image'
+import SafeImage from '@/components/ui/SafeImage'
 import { ShoppingBag, Heart, Shield, RotateCcw, Truck, ChevronDown, ChevronUp } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
@@ -158,12 +159,12 @@ export default function ProductDetail({ product, initialColor }: Props) {
         {/* Imagem principal com zoom no hover */}
         <div className="relative flex-1 aspect-[3/4] bg-cream-100 overflow-hidden group/img">
           {currentImage ? (
-            <Image
+            <SafeImage
               src={currentImage.url}
               alt={product.name}
               fill
               priority
-              quality={95}
+              sizes="(max-width: 1024px) 100vw, 50vw"
               className={clsx(
                 'object-contain object-center transition-transform duration-700 ease-out group-hover/img:scale-110',
                 isSelectedColorSoldOut && 'grayscale opacity-60'
