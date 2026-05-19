@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Coupon extends Model
 {
-    protected $fillable = ['code', 'discount_percentage', 'is_active', 'expires_at'];
+    protected $fillable = ['code', 'discount_percentage', 'is_active', 'expires_at', 'payment_method'];
 
     protected $casts = [
         'is_active'  => 'boolean',

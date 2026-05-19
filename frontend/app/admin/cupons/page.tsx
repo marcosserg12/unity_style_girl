@@ -7,12 +7,18 @@ import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 
+const PAYMENT_LABELS: Record<string, string> = {
+  pix:         'PIX',
+  credit_card: 'Cartão de Crédito',
+}
+
 interface Coupon {
   id:                  number
   code:                string
   discount_percentage: number
   is_active:           boolean
   expires_at:          string | null
+  payment_method:      string | null
   usages_count:        number
   created_at:          string
 }
@@ -25,10 +31,11 @@ export default function AdminCouponsPage() {
   const [showForm, setShowForm] = useState(false)
   const [saving,   setSaving]   = useState(false)
 
-  const [code,       setCode]       = useState('')
-  const [pct,        setPct]        = useState('')
-  const [expiresAt,  setExpiresAt]  = useState('')
-  const [isActive,   setIsActive]   = useState(true)
+  const [code,          setCode]          = useState('')
+  const [pct,           setPct]           = useState('')
+  const [expiresAt,     setExpiresAt]     = useState('')
+  const [isActive,      setIsActive]      = useState(true)
+  const [paymentMethod, setPaymentMethod] = useState<string>('all')
 
   async function fetchCoupons() {
     setLoading(true)
@@ -54,9 +61,10 @@ export default function AdminCouponsPage() {
         discount_percentage: Number(pct),
         is_active:           isActive,
         expires_at:          expiresAt || null,
+        payment_method:      paymentMethod === 'all' ? null : paymentMethod,
       })
       toast.success('Cupom criado!')
-      setCode(''); setPct(''); setExpiresAt(''); setIsActive(true)
+      setCode(''); setPct(''); setExpiresAt(''); setIsActive(true); setPaymentMethod('all')
       setShowForm(false)
       fetchCoupons()
     } catch (err: any) {
@@ -153,6 +161,34 @@ export default function AdminCouponsPage() {
               />
             </div>
           </div>
+          {/* Método de pagamento */}
+          <div>
+            <label className="block font-sans text-xs text-gray-500 uppercase tracking-wider mb-2">
+              Válido para
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'all',         label: 'PIX e Cartão' },
+                { value: 'pix',         label: 'Apenas PIX' },
+                { value: 'credit_card', label: 'Apenas Cartão' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setPaymentMethod(opt.value)}
+                  className={clsx(
+                    'px-4 py-2 font-sans text-sm border-2 transition-all duration-150',
+                    paymentMethod === opt.value
+                      ? 'border-wine-900 bg-wine-900 text-cream-100'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 cursor-pointer select-none font-sans text-sm text-gray-600">
               <input
@@ -203,6 +239,7 @@ export default function AdminCouponsPage() {
                 <tr className="bg-cream-100/60 text-left">
                   <th className="px-5 py-3.5 font-sans text-xs text-gray-400 uppercase tracking-wider">Código</th>
                   <th className="px-5 py-3.5 font-sans text-xs text-gray-400 uppercase tracking-wider">Desconto</th>
+                  <th className="px-5 py-3.5 font-sans text-xs text-gray-400 uppercase tracking-wider">Válido para</th>
                   <th className="px-5 py-3.5 font-sans text-xs text-gray-400 uppercase tracking-wider">Usos</th>
                   <th className="px-5 py-3.5 font-sans text-xs text-gray-400 uppercase tracking-wider">Expira em</th>
                   <th className="px-5 py-3.5 font-sans text-xs text-gray-400 uppercase tracking-wider">Status</th>
@@ -221,6 +258,12 @@ export default function AdminCouponsPage() {
                       </td>
                       <td className="px-5 py-4 font-semibold text-gray-800">
                         {coupon.discount_percentage}%
+                      </td>
+                      <td className="px-5 py-4 text-gray-600 text-sm">
+                        {coupon.payment_method
+                          ? PAYMENT_LABELS[coupon.payment_method] ?? coupon.payment_method
+                          : <span className="text-gray-400">PIX e Cartão</span>
+                        }
                       </td>
                       <td className="px-5 py-4 text-gray-500">
                         {coupon.usages_count}

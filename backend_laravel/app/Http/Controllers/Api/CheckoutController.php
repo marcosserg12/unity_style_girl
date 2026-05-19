@@ -97,11 +97,14 @@ class CheckoutController extends Controller
 
         if (!empty($validated['coupon_code'])) {
             $coupon = Coupon::where('code', strtoupper($validated['coupon_code']))->first();
-            if ($coupon && $coupon->isValidForUser($user->id)) {
-                $discountAmount = round($subtotal * $coupon->discount_percentage / 100, 2);
-            } else {
+            if (! $coupon || ! $coupon->isValidForUser($user->id)) {
                 return response()->json(['message' => 'Cupom inválido ou já utilizado.'], 422);
             }
+            if ($coupon->payment_method && $coupon->payment_method !== $validated['payment_method']) {
+                $label = $coupon->payment_method === 'pix' ? 'PIX' : 'Cartão de Crédito';
+                return response()->json(['message' => "Este cupom é válido apenas para pagamento via {$label}."], 422);
+            }
+            $discountAmount = round($subtotal * $coupon->discount_percentage / 100, 2);
         }
 
         $finalTotal = max(0, $subtotal - $discountAmount);

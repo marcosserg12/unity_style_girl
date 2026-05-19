@@ -32,6 +32,7 @@ class CouponController extends Controller
         return response()->json([
             'code'                => $coupon->code,
             'discount_percentage' => $coupon->discount_percentage,
+            'payment_method'      => $coupon->payment_method, // null = todos
         ]);
     }
 }

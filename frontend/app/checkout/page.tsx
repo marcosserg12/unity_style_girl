@@ -61,7 +61,7 @@ export default function CheckoutPage() {
 
   // Cupom
   const [couponInput,    setCouponInput]    = useState('')
-  const [couponApplied,  setCouponApplied]  = useState<{ code: string; pct: number } | null>(null)
+  const [couponApplied,  setCouponApplied]  = useState<{ code: string; pct: number; paymentMethod: string | null } | null>(null)
   const [couponLoading,  setCouponLoading]  = useState(false)
 
   // Endereços
@@ -137,8 +137,11 @@ export default function CheckoutPage() {
     setCouponLoading(true)
     try {
       const { data } = await api.post('/coupons/validate', { code: couponInput.trim() })
-      setCouponApplied({ code: data.code, pct: data.discount_percentage })
-      toast.success(`Cupom "${data.code}" aplicado! -${data.discount_percentage}%`)
+      setCouponApplied({ code: data.code, pct: data.discount_percentage, paymentMethod: data.payment_method ?? null })
+      // Se o cupom restringe o método de pagamento, pré-selecionar automaticamente
+      if (data.payment_method) setPayment(data.payment_method as PaymentMethod)
+      const restriction = data.payment_method === 'pix' ? ' (válido apenas para PIX)' : data.payment_method === 'credit_card' ? ' (válido apenas para Cartão)' : ''
+      toast.success(`Cupom "${data.code}" aplicado! -${data.discount_percentage}%${restriction}`)
     } catch (err: any) {
       toast.error(err.response?.data?.message ?? 'Cupom inválido.')
       setCouponApplied(null)
@@ -537,7 +540,11 @@ export default function CheckoutPage() {
                   <CheckCircle2 size={18} className="text-green-600 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-sans text-sm font-semibold text-green-800">{couponApplied.code}</p>
-                    <p className="font-sans text-xs text-green-600">-{couponApplied.pct}% aplicado</p>
+                    <p className="font-sans text-xs text-green-600">
+                      -{couponApplied.pct}% aplicado
+                      {couponApplied.paymentMethod === 'pix' && ' · Apenas PIX'}
+                      {couponApplied.paymentMethod === 'credit_card' && ' · Apenas Cartão'}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -581,41 +588,62 @@ export default function CheckoutPage() {
               </h2>
             </div>
             <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setPayment('pix')}
-                className={`flex items-center gap-4 border-2 px-5 py-4 transition-all text-left ${
-                  payment === 'pix'
-                    ? 'border-wine-900 bg-wine-900/5'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className={`w-10 h-10 flex items-center justify-center shrink-0 ${payment === 'pix' ? 'bg-wine-900' : 'bg-gray-100'}`}>
-                  <QrCode size={20} className={payment === 'pix' ? 'text-cream-100' : 'text-gray-400'} />
-                </div>
-                <div>
-                  <p className={`font-serif text-base font-medium ${payment === 'pix' ? 'text-wine-900' : 'text-gray-700'}`}>PIX</p>
-                  <p className="font-sans text-xs text-gray-400">Pagamento instantâneo</p>
-                </div>
-              </button>
+              {(() => {
+                const couponMethod = couponApplied?.paymentMethod ?? null
+                const pixBlocked    = couponMethod === 'credit_card'
+                const cardBlocked   = couponMethod === 'pix'
+                return (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => !pixBlocked && setPayment('pix')}
+                      disabled={pixBlocked}
+                      title={pixBlocked ? 'O cupom aplicado é válido apenas para Cartão de Crédito' : undefined}
+                      className={`flex items-center gap-4 border-2 px-5 py-4 transition-all text-left ${
+                        pixBlocked
+                          ? 'border-gray-100 opacity-40 cursor-not-allowed'
+                          : payment === 'pix'
+                            ? 'border-wine-900 bg-wine-900/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 flex items-center justify-center shrink-0 ${payment === 'pix' && !pixBlocked ? 'bg-wine-900' : 'bg-gray-100'}`}>
+                        <QrCode size={20} className={payment === 'pix' && !pixBlocked ? 'text-cream-100' : 'text-gray-400'} />
+                      </div>
+                      <div>
+                        <p className={`font-serif text-base font-medium ${payment === 'pix' && !pixBlocked ? 'text-wine-900' : 'text-gray-700'}`}>PIX</p>
+                        <p className="font-sans text-xs text-gray-400">
+                          {pixBlocked ? 'Bloqueado pelo cupom' : 'Pagamento instantâneo'}
+                        </p>
+                      </div>
+                    </button>
 
-              <button
-                type="button"
-                onClick={() => setPayment('credit_card')}
-                className={`flex items-center gap-4 border-2 px-5 py-4 transition-all text-left ${
-                  payment === 'credit_card'
-                    ? 'border-wine-900 bg-wine-900/5'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className={`w-10 h-10 flex items-center justify-center shrink-0 ${payment === 'credit_card' ? 'bg-wine-900' : 'bg-gray-100'}`}>
-                  <CreditCard size={20} className={payment === 'credit_card' ? 'text-cream-100' : 'text-gray-400'} />
-                </div>
-                <div>
-                  <p className={`font-serif text-base font-medium ${payment === 'credit_card' ? 'text-wine-900' : 'text-gray-700'}`}>Cartão de Crédito</p>
-                  <p className="font-sans text-xs text-gray-400">Combinamos as parcelas</p>
-                </div>
-              </button>
+                    <button
+                      type="button"
+                      onClick={() => !cardBlocked && setPayment('credit_card')}
+                      disabled={cardBlocked}
+                      title={cardBlocked ? 'O cupom aplicado é válido apenas para PIX' : undefined}
+                      className={`flex items-center gap-4 border-2 px-5 py-4 transition-all text-left ${
+                        cardBlocked
+                          ? 'border-gray-100 opacity-40 cursor-not-allowed'
+                          : payment === 'credit_card'
+                            ? 'border-wine-900 bg-wine-900/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 flex items-center justify-center shrink-0 ${payment === 'credit_card' && !cardBlocked ? 'bg-wine-900' : 'bg-gray-100'}`}>
+                        <CreditCard size={20} className={payment === 'credit_card' && !cardBlocked ? 'text-cream-100' : 'text-gray-400'} />
+                      </div>
+                      <div>
+                        <p className={`font-serif text-base font-medium ${payment === 'credit_card' && !cardBlocked ? 'text-wine-900' : 'text-gray-700'}`}>Cartão de Crédito</p>
+                        <p className="font-sans text-xs text-gray-400">
+                          {cardBlocked ? 'Bloqueado pelo cupom' : 'Combinamos as parcelas'}
+                        </p>
+                      </div>
+                    </button>
+                  </>
+                )
+              })()}
             </div>
           </div>
 

@@ -22,6 +22,7 @@ class AdminCouponController extends Controller
             'discount_percentage' => ['required', 'integer', 'min:1', 'max:100'],
             'is_active'           => ['boolean'],
             'expires_at'          => ['nullable', 'date', 'after:now'],
+            'payment_method'      => ['nullable', 'in:pix,credit_card'],
         ]);
 
         $data['code'] = strtoupper($data['code']);
