@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ChevronRight, Loader2, MessageCircle, ShoppingBag,
-  User, CreditCard, QrCode, MapPin, Plus, Star, ChevronDown, Truck, Store,
+  User, CreditCard, QrCode, MapPin, Plus, Star, ChevronDown, Truck, Store, Ticket, CheckCircle2, X,
 } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
 import { api, authApi } from '@/lib/api'
@@ -58,6 +58,11 @@ export default function CheckoutPage() {
   const [whatsapp,    setWhatsapp]    = useState('')
   const [payment,     setPayment]     = useState<PaymentMethod>('')
   const [delivery,    setDelivery]    = useState<DeliveryType>('')
+
+  // Cupom
+  const [couponInput,    setCouponInput]    = useState('')
+  const [couponApplied,  setCouponApplied]  = useState<{ code: string; pct: number } | null>(null)
+  const [couponLoading,  setCouponLoading]  = useState(false)
 
   // Endereços
   const [addresses,      setAddresses]      = useState<Address[]>([])
@@ -124,6 +129,29 @@ export default function CheckoutPage() {
     return null
   })()
 
+  const discountAmount = couponApplied ? Math.round(total * couponApplied.pct) / 100 : 0
+  const finalTotal     = Math.max(0, total - discountAmount)
+
+  const handleCouponApply = async () => {
+    if (!couponInput.trim()) return
+    setCouponLoading(true)
+    try {
+      const { data } = await api.post('/coupons/validate', { code: couponInput.trim() })
+      setCouponApplied({ code: data.code, pct: data.discount_percentage })
+      toast.success(`Cupom "${data.code}" aplicado! -${data.discount_percentage}%`)
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? 'Cupom inválido.')
+      setCouponApplied(null)
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
+  const handleCouponRemove = () => {
+    setCouponApplied(null)
+    setCouponInput('')
+  }
+
   const canSubmit = name.trim() !== '' && whatsapp.trim() !== '' && payment !== '' && delivery !== ''
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,6 +198,7 @@ export default function CheckoutPage() {
         customer_name:  name.trim(),
         customer_phone: whatsapp.trim(),
         payment_method: payment,
+        coupon_code:    couponApplied?.code ?? null,
         ...addrPayload,
       })
 
@@ -177,10 +206,11 @@ export default function CheckoutPage() {
       useCartStore.setState({ items: [], total: 0, itemCount: 0 })
 
       const waText = buildWaMessage(
-        items, total, name, whatsapp, payment,
+        items, finalTotal, name, whatsapp, payment,
         savedOrderNumber,
         addrForWa ?? undefined,
         delivery,
+        couponApplied ?? undefined,
       )
       sessionStorage.setItem('ug_checkout_confirm', JSON.stringify({
         orderNumber: savedOrderNumber,
@@ -493,6 +523,53 @@ export default function CheckoutPage() {
           </div>
           )}
 
+          {/* Cupom de desconto */}
+          <div className="bg-white border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-cream-100/50">
+              <div className="w-7 h-7 bg-wine-900 flex items-center justify-center shrink-0">
+                <Ticket size={14} className="text-cream-100" />
+              </div>
+              <h2 className="font-serif text-lg text-gray-800">Cupom de Desconto</h2>
+            </div>
+            <div className="p-6">
+              {couponApplied ? (
+                <div className="flex items-center gap-3 bg-green-50 border border-green-200 px-4 py-3">
+                  <CheckCircle2 size={18} className="text-green-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-sans text-sm font-semibold text-green-800">{couponApplied.code}</p>
+                    <p className="font-sans text-xs text-green-600">-{couponApplied.pct}% aplicado</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCouponRemove}
+                    className="p-1 hover:bg-green-100 rounded transition-colors text-green-600"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="Código do cupom"
+                    className={`${inputCls} flex-1`}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCouponApply())}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCouponApply}
+                    disabled={couponLoading || !couponInput.trim()}
+                    className="px-5 py-2.5 bg-wine-900 text-cream-100 font-sans text-sm font-semibold hover:bg-wine-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
+                  >
+                    {couponLoading ? <Loader2 size={14} className="animate-spin" /> : 'Aplicar'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Forma de pagamento */}
           <div className="bg-white border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-cream-100/50">
@@ -599,6 +676,12 @@ export default function CheckoutPage() {
               <div className="flex justify-between font-sans text-sm text-gray-500">
                 <span>Subtotal</span><span>{formatPrice(total)}</span>
               </div>
+              {couponApplied && (
+                <div className="flex justify-between font-sans text-sm text-green-700 font-medium">
+                  <span>Desconto ({couponApplied.code})</span>
+                  <span>-{formatPrice(discountAmount)}</span>
+                </div>
+              )}
               {delivery !== 'retirada' && (
                 <div className="flex justify-between font-sans text-sm text-gray-500">
                   <span>Frete</span>
@@ -610,7 +693,7 @@ export default function CheckoutPage() {
               </p>
               <div className="flex justify-between font-serif text-lg font-semibold pt-2 border-t border-gray-100">
                 <span>Total</span>
-                <span className="text-wine-900">{formatPrice(total)}</span>
+                <span className="text-wine-900">{formatPrice(finalTotal)}</span>
               </div>
             </div>
           </div>

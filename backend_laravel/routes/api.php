@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\AdminBannerController;
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\Admin\AdminColorController;
+use App\Http\Controllers\Api\Admin\AdminCouponController;
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminOrderController;
 use App\Http\Controllers\Api\Admin\AdminProductController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CheckoutController;
+use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\SettingController;
@@ -64,6 +66,9 @@ Route::prefix('v1')->group(function () {
 
         // Checkout via WhatsApp (ativo)
         Route::post('/checkout/whatsapp', [CheckoutController::class, 'createWhatsAppOrder']);
+
+        // Cupons
+        Route::post('/coupons/validate', [CouponController::class, 'validate']);
 
         // Checkout com Mercado Pago (comentado — aguardando CNPJ)
         // Route::post('/checkout/preference', [CheckoutController::class, 'createPreference']);
@@ -154,6 +159,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/',                 [AdminUserController::class, 'index']);
             Route::get('/{user}',           [AdminUserController::class, 'show']);
             Route::patch('/{user}/toggle-active', [AdminUserController::class, 'toggleActive']);
+        });
+
+        // Cupons
+        Route::prefix('coupons')->group(function () {
+            Route::get('/',                     [AdminCouponController::class, 'index']);
+            Route::post('/',                    [AdminCouponController::class, 'store']);
+            Route::patch('/{coupon}/toggle',    [AdminCouponController::class, 'toggle']);
+            Route::delete('/{coupon}',          [AdminCouponController::class, 'destroy']);
         });
     });
 });

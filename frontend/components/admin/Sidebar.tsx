@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   Menu,
   X,
+  Ticket,
 } from 'lucide-react'
 import { useState } from 'react'
 import clsx from 'clsx'
@@ -20,6 +21,7 @@ const MENU_ITEMS = [
   { label: 'Dashboard',     href: '/admin',                icon: LayoutDashboard },
   { label: 'Produtos',      href: '/admin/produtos',       icon: Package         },
   { label: 'Pedidos',       href: '/admin/pedidos',        icon: ShoppingBag     },
+  { label: 'Cupons',        href: '/admin/cupons',         icon: Ticket          },
   { label: 'Clientes',      href: '/admin/clientes',       icon: Users           },
   { label: 'Configurações', href: '/admin/configuracoes',  icon: Settings        },
 ]

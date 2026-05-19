@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\NewOrderMail;
 use App\Models\Cart;
+use App\Models\Coupon;
+use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Repositories\OrderRepository;
 use App\Services\MercadoPagoService;
@@ -42,6 +44,7 @@ class CheckoutController extends Controller
             'state'          => ['nullable', 'string', 'max:2'],
             'zip_code'       => ['nullable', 'string', 'max:20'],
             'save_address'   => ['boolean'],
+            'coupon_code'    => ['nullable', 'string', 'max:50'],
         ]);
 
         $cart = $this->resolveCart($request, $user->id);
@@ -88,24 +91,50 @@ class CheckoutController extends Controller
             'quantity'   => $i->quantity,
         ])->toArray();
 
+        // Resolve cupom
+        $coupon         = null;
+        $discountAmount = 0;
+
+        if (!empty($validated['coupon_code'])) {
+            $coupon = Coupon::where('code', strtoupper($validated['coupon_code']))->first();
+            if ($coupon && $coupon->isValidForUser($user->id)) {
+                $discountAmount = round($subtotal * $coupon->discount_percentage / 100, 2);
+            } else {
+                return response()->json(['message' => 'Cupom inválido ou já utilizado.'], 422);
+            }
+        }
+
+        $finalTotal = max(0, $subtotal - $discountAmount);
+
         try {
             $order = $this->orderRepository->createFromCart([
                 'user_id'          => $user->id,
                 'subtotal'         => $subtotal,
                 'shipping_cost'    => 0,
-                'discount_amount'  => 0,
-                'total'            => $subtotal,
+                'discount_amount'  => $discountAmount,
+                'coupon_code'      => $coupon?->code,
+                'total'            => $finalTotal,
                 'payment_method'   => $validated['payment_method'],
                 'shipping_address' => $shippingAddress,
             ], $cartItems);
+
+            if ($coupon) {
+                CouponUsage::create([
+                    'coupon_id' => $coupon->id,
+                    'user_id'   => $user->id,
+                    'order_id'  => $order->id,
+                ]);
+            }
 
             $cart->items()->delete();
 
             $this->notifyStore($order);
 
             return response()->json([
-                'order_number' => $order->order_number,
-                'total'        => (float) $order->total,
+                'order_number'    => $order->order_number,
+                'total'           => (float) $order->total,
+                'discount_amount' => (float) $discountAmount,
+                'coupon_code'     => $coupon?->code,
             ], 201);
 
         } catch (\Exception $e) {

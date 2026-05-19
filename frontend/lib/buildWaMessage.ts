@@ -22,6 +22,7 @@ export function buildWaMessage(
   orderNumber?: string,
   address?: AddressInfo,
   deliveryType?: DeliveryType,
+  coupon?: { code: string; pct: number },
 ): string {
   const linhas = items.map((item, i) => {
     const detalhes = [
@@ -35,8 +36,8 @@ export function buildWaMessage(
   const paymentLabel  = payment === 'pix' ? 'PIX' : payment === 'credit_card' ? 'Cartão de Crédito' : '—'
   const isRetirada    = deliveryType === 'retirada'
   const totalLabel    = isRetirada
-    ? `*Total: ${formatPrice(total)}*`
-    : `*Total: ${formatPrice(total)}* _(frete a combinar)_`
+    ? `*Total: ${formatPrice(total)}*${coupon ? ` _(cupom ${coupon.code} -${coupon.pct}%)_` : ''}`
+    : `*Total: ${formatPrice(total)}*${coupon ? ` _(cupom ${coupon.code} -${coupon.pct}%)_` : ''} _(frete a combinar)_`
 
   const entregaLinhas: (string | null)[] = []
   if (isRetirada) {
